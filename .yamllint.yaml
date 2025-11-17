@@ -7,35 +7,35 @@ rules:
   line-length:
     max: 120
     level: warning
-  
+
   # Document start (allow files without ---)
   document-start:
     present: false
-  
+
   # Indentation
   indentation:
     spaces: 2
     indent-sequences: true
     check-multi-line-strings: false
-  
+
   # Comments
   comments:
     min-spaces-from-content: 1
-  
+
   # Empty lines
   empty-lines:
     max: 2
-  
+
   # Truthy values (allow yes/no, true/false, on/off)
   truthy:
     allowed-values: ['true', 'false', 'yes', 'no', 'on', 'off']
     check-keys: false
-  
+
   # Brackets
   brackets:
     min-spaces-inside: 0
     max-spaces-inside: 1
-  
+
   # Colons
   colons:
     max-spaces-before: 0
