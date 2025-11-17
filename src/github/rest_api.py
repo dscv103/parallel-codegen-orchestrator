@@ -96,7 +96,6 @@ class GitHubIntegration:
                 for issue in issues:
                     if not issue.pull_request:
                         yield issue
-                return  # Success, exit retry loop
             except RateLimitExceededException:
                 if attempt < max_retries - 1:
                     # Wait for rate limit reset before retrying
@@ -106,6 +105,8 @@ class GitHubIntegration:
                 else:
                     # Exhausted retries, raise the exception
                     raise
+            else:
+                return  # Success, exit retry loop
 
     def fetch_pull_requests(
         self,
@@ -134,7 +135,6 @@ class GitHubIntegration:
             try:
                 pulls = repo.get_pulls(state=state)
                 yield from pulls
-                return  # Success, exit retry loop
             except RateLimitExceededException:
                 if attempt < max_retries - 1:
                     # Wait for rate limit reset before retrying
@@ -144,6 +144,8 @@ class GitHubIntegration:
                 else:
                     # Exhausted retries, raise the exception
                     raise
+            else:
+                return  # Success, exit retry loop
 
     def update_issue_status(
         self,

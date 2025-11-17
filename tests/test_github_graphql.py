@@ -8,6 +8,16 @@ import pytest
 
 from src.github.graphql_api import GitHubGraphQL, GraphQLError
 
+# Test constants
+TEST_TOKEN = "test_token_12345"  # noqa: S105
+TEST_TOKEN_SIMPLE = "test_token"  # noqa: S105
+TEST_TOKEN_HEADERS = "test_token_123"  # noqa: S105
+
+# Test values
+EXPECTED_ITEM_COUNT = 2
+EXPECTED_FIELD_COUNT = 2
+EXPECTED_CALL_COUNT = 2
+
 
 @pytest.fixture
 def mock_httpx_client():
@@ -19,25 +29,25 @@ def mock_httpx_client():
 
 
 @pytest.fixture
-def github_graphql(mock_httpx_client):
+def github_graphql():
     """Create a GitHubGraphQL instance with mocked client."""
-    return GitHubGraphQL(token="test_token_12345")
+    return GitHubGraphQL(token=TEST_TOKEN)
 
 
 class TestInitialization:
     """Test GitHubGraphQL initialization."""
 
-    def test_init_with_valid_token(self, mock_httpx_client):
+    def test_init_with_valid_token(self):
         """Test initialization with valid token."""
-        graphql = GitHubGraphQL(token="test_token")
+        graphql = GitHubGraphQL(token=TEST_TOKEN_SIMPLE)
 
-        assert graphql.token == "test_token"
+        assert graphql.token == TEST_TOKEN_SIMPLE
         assert graphql.base_url == "https://api.github.com/graphql"
 
     def test_init_sets_correct_headers(self):
         """Test that correct headers are set on initialization."""
         with patch("src.github.graphql_api.httpx.AsyncClient") as mock_client:
-            graphql = GitHubGraphQL(token="test_token_123")
+            GitHubGraphQL(token=TEST_TOKEN_HEADERS)
 
             # Verify AsyncClient was called with correct headers
             mock_client.assert_called_once()
@@ -150,10 +160,10 @@ class TestFetchProjectItems:
         result = await github_graphql.fetch_project_items(project_id="PVT_test")
 
         # Verify
-        assert len(result) == 2
+        assert len(result) == EXPECTED_ITEM_COUNT
         assert result[0]["id"] == "PVTI_1"
         assert result[1]["id"] == "PVTI_2"
-        assert mock_httpx_client.post.call_count == 2
+        assert mock_httpx_client.post.call_count == EXPECTED_CALL_COUNT
 
     @pytest.mark.asyncio
     async def test_fetch_project_items_with_errors(
@@ -218,7 +228,7 @@ class TestFetchProjectDetails:
         # Verify
         assert result["title"] == "My Project"
         assert result["shortDescription"] == "Project description"
-        assert len(result["fields"]["nodes"]) == 2
+        assert len(result["fields"]["nodes"]) == EXPECTED_FIELD_COUNT
         assert result["fields"]["nodes"][0]["name"] == "Status"
 
 
@@ -434,8 +444,8 @@ class TestCleanup:
     @pytest.mark.asyncio
     async def test_context_manager(self, mock_httpx_client):
         """Test using GitHubGraphQL as async context manager."""
-        async with GitHubGraphQL(token="test") as graphql:
-            assert graphql.token == "test"
+        async with GitHubGraphQL(token=TEST_TOKEN_SIMPLE) as graphql:
+            assert graphql.token == TEST_TOKEN_SIMPLE
 
         mock_httpx_client.aclose.assert_called_once()
 
