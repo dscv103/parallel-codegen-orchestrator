@@ -1,0 +1,155 @@
+# CodeRabbit Configuration for Parallel Codegen Orchestrator
+
+# Language: English for all reviews and comments
+language: en-US
+
+early_access: true
+
+reviews:
+  profile: assertive
+  request_changes_workflow: true
+  high_level_summary: true
+  poem: true
+  review_status: true
+  collapse_walkthrough: false
+  auto_review:
+    enabled: true
+    drafts: true
+    base_branches:
+      - main
+      - develop
+  path_instructions:
+    - path: "src/github/**"
+      instructions: |
+        Review for proper GitHub API error handling, rate limits, async patterns, token security, and GraphQL query efficiency.
+    - path: "src/graph/**"
+      instructions: |
+        Review for cycle detection, thread-safe ops, topological sorting, edge cases, and memory efficiency.
+    - path: "src/agents/**"
+      instructions: |
+        Review for agent pool state management, race prevention, timeout handling, resource cleanup, and Codegen SDK.
+    - path: "src/orchestrator/**"
+      instructions: |
+        Review for asyncio patterns (semaphore, locks, queues), deadlock prevention, result/error handling, and performance.
+    - path: "src/config.py"
+      instructions: |
+        Review for Pydantic validation, sensible defaults, env vars, and no sensitive data in config.
+    - path: "tests/**"
+      instructions: |
+        Review for test thoroughness, mocking, edge cases, assertion clarity, and performance tests.
+    - path: "*.yaml"
+      instructions: |
+        Review for proper YAML structure, no secrets, and valid schema.
+    - path: "main.py"
+      instructions: |
+        Review for signal handling, shutdown, CLI validation, and robust error handling.
+
+chat:
+  enabled: true
+  auto_reply: true
+
+knowledge_base:
+  learnings: true
+  issues: true
+  jira: false
+
+tools:
+  ast-grep:
+    enabled: true
+    rule_sets:
+      - best-practices
+      - security
+      - performance
+      - async-patterns
+  github-checks:
+    enabled: true
+    timeout_ms: 90000
+  biome:
+    enabled: false
+  ruff:
+    enabled: true
+    select:
+      - E
+      - F
+      - W
+      - C90
+      - I
+      - N
+      - D
+      - UP
+      - YTT
+      - ANN
+      - ASYNC
+      - S
+      - BLE
+      - B
+      - A
+      - COM
+      - C4
+      - DTZ
+      - T10
+      - EM
+      - ISC
+      - ICN
+      - G
+      - PIE
+      - T20
+      - PYI
+      - PT
+      - Q
+      - RSE
+      - RET
+      - SLF
+      - SLOT
+      - SIM
+      - TID
+      - TCH
+      - ARG
+      - PTH
+      - ERA
+      - PD
+      - PGH
+      - PL
+      - TRY
+      - FLY
+      - NPY
+      - PERF
+      - RUF
+    ignore:
+      - E501
+      - D203
+      - D213
+    dummy-variable-rgx: "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+    target-version: "py313"
+  markdownlint:
+    enabled: true
+  yamllint:
+    enabled: true
+  shellcheck:
+    enabled: true
+  hadolint:
+    enabled: false
+  swiftlint:
+    enabled: false
+  languagetool:
+    enabled: true
+    enabled_only: true
+    level: picky
+
+tone_instructions: |
+  Be professional, constructive, and educational. Focus on best practices and explanations, praise good patterns, provide code examples, prioritize critical issues (security, bugs), be actionable, follow Python 3.13+ async best practices, reference AGENTS.md, and align with architecture.
+
+review_instructions: |
+  Focus on correctness (async patterns, graph ops, thread-safety), security (no hardcoded secrets, input validation), performance (parallelism, memory, API), architecture alignment (per AGENTS.md), testing (coverage, edge cases), documentation (docstrings, comments), code quality, error handling, and observability.
+
+abort_on_close: true
+
+enable_auto_approval: false
+
+labels:
+  reviewed: "coderabbit:reviewed"
+  changes_requested: "coderabbit:changes-requested"
+  critical: "coderabbit:critical"
+
+link_issues: true
+concise: false
