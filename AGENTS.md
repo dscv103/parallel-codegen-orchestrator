@@ -6,7 +6,7 @@ This repository implements a parallel agent orchestration system that uses the C
 
 ## Architecture Summary
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                    Main Orchestrator                         │
 │  (Entry Point + CLI + Configuration Management)              │
@@ -45,11 +45,13 @@ This repository implements a parallel agent orchestration system that uses the C
     │  - Status tracking (IDLE/BUSY)     │
     │  - Agent allocation & recovery     │
     └────────────────────────────────────┘
-```
+
+```text
 
 ## Technology Stack
 
 - **Python**: 3.13+
+
 - **Core Libraries**:
   - `graphlib` - Built-in topological sorting
   - `asyncio` - Async/concurrent execution
@@ -68,14 +70,21 @@ This repository implements a parallel agent orchestration system that uses the C
 **Goal**: Establish robust GitHub API integration for fetching tasks and posting results.
 
 #### Issue #1: GitHub REST API Integration with PyGithub
+
 - Authenticate with GitHub token
+
 - Fetch issues with filtering (state, labels)
+
 - Update issue status and labels programmatically
+
 - Create branches for agent work
+
 - Post comments to issues/PRs
+
 - Handle pagination and rate limits
 
 **Key Implementation Points**:
+
 ```python
 from github import Github
 
@@ -86,16 +95,23 @@ class GitHubIntegration:
     async def fetch_issues(self, repo_name: str, state='open'):
         repo = self.github.get_repo(repo_name)
         return repo.get_issues(state=state)
-```
+
+```text
 
 #### Issue #2: GitHub GraphQL Integration for Projects v2
+
 - Use httpx async client for GraphQL queries
+
 - Fetch project boards and items
+
 - Query custom fields from Projects v2
+
 - Update project item status
+
 - Implement cursor-based pagination
 
 **Key Implementation Points**:
+
 ```python
 import httpx
 
@@ -105,18 +121,24 @@ class GitHubGraphQL:
             base_url="https://api.github.com/graphql",
             headers={"Authorization": f"Bearer {token}"}
         )
-```
+
+```text
 
 #### Issue #3: Dependency Parsing from Issues
+
 - Parse issue body for dependency markers:
   - `Depends on #123`
   - `Blocked by #456`
   - `Requires #789`
+
 - Extract dependencies from labels (e.g., `depends:issue-123`)
+
 - Validate dependency references
+
 - Return structured dependency data
 
 **Key Implementation Points**:
+
 ```python
 import re
 from typing import Set
@@ -134,21 +156,29 @@ class DependencyParser:
             matches = re.findall(pattern, issue_body, re.IGNORECASE)
             dependencies.update(f"issue-{num}" for num in matches)
         return dependencies
-```
+
+```text
 
 ### Phase 2: Dependency Graph Builder
 
 **Goal**: Build and validate a DAG (Directed Acyclic Graph) using Python's graphlib.
 
 #### Issue #4: Dependency Graph Construction with graphlib
+
 - Wrap `graphlib.TopologicalSorter` in `DependencyGraph` class
+
 - Add tasks with dependencies
+
 - Build and validate DAG (detect cycles)
+
 - Implement `get_ready_tasks()` - returns tasks with all dependencies met
+
 - Implement `mark_completed()` - mark tasks as done
+
 - Support dynamic graph updates
 
 **Key Implementation Points**:
+
 ```python
 from graphlib import TopologicalSorter
 from typing import Dict, Set
@@ -175,13 +205,19 @@ class DependencyGraph:
     
     def mark_completed(self, *task_ids: str):
         self.sorter.done(*task_ids)
-```
+
+```text
 
 #### Issue #5: Graph Validation and Cycle Detection
+
 - Detect cycles with detailed path reporting
+
 - Validate all task references exist
+
 - Check for orphaned tasks
+
 - Generate validation reports
+
 - Implement graph visualization for debugging
 
 ### Phase 3: Agent Pool & Orchestrator
@@ -189,14 +225,21 @@ class DependencyGraph:
 **Goal**: Manage a pool of Codegen agents for parallel execution.
 
 #### Issue #6: Agent Pool Manager Implementation
+
 - Initialize pool with configurable agent count (max 10)
+
 - Track agent status: IDLE, BUSY, FAILED
+
 - Implement `get_idle_agent()` - allocate available agent
+
 - Implement `mark_busy()` and `mark_idle()` - status transitions
+
 - Handle agent failure and recovery
+
 - Provide pool statistics
 
 **Key Implementation Points**:
+
 ```python
 from enum import Enum
 from dataclasses import dataclass
@@ -218,18 +261,27 @@ class AgentPool:
     def __init__(self, org_id: str, token: str, max_agents: int = 10):
         self.agents: list[ManagedAgent] = []
         self._initialize_pool()
-```
+
+```text
 
 #### Issue #7: Codegen Agent Integration
+
 - Initialize Codegen agents with org_id and token
+
 - Execute agent tasks with prompt and repo_id
+
 - Implement async polling for task completion
+
 - Handle task status: pending, running, completed, failed
+
 - Extract and store results
+
 - Implement timeout handling (default 600s)
+
 - Add retry logic for transient failures
 
 **Key Implementation Points**:
+
 ```python
 from codegen import Agent
 import asyncio
@@ -258,22 +310,31 @@ class CodegenExecutor:
             'result': task.result if task.status == 'completed' else None,
             'error': task.error if task.status == 'failed' else None
         }
-```
+
+```text
 
 ### Phase 4: Asyncio Task Execution
 
 **Goal**: Implement concurrent task execution with dependency-aware orchestration.
 
 #### Issue #8: Concurrent Task Executor with Semaphore
+
 - Create `TaskExecutor` class with `asyncio.Semaphore`
+
 - Limit concurrent execution to agent pool size (max 10)
+
 - Execute tasks using agents from pool
+
 - Handle task lifecycle: dispatch → execute → complete
+
 - Implement timeout handling
+
 - Track active tasks and results
+
 - Support graceful cancellation
 
 **Key Implementation Points**:
+
 ```python
 import asyncio
 
@@ -298,18 +359,27 @@ class TaskExecutor:
                 return result
             finally:
                 self.agent_pool.mark_idle(agent)
-```
+
+```text
 
 #### Issue #9: Main Orchestration Loop with Topological Execution
+
 - Integrate `DependencyGraph` with `TaskExecutor`
+
 - Implement main loop using topological sorting
+
 - Fetch ready tasks iteratively
+
 - Dispatch ready tasks using `asyncio.gather`
+
 - Mark completed tasks in graph
+
 - Continue until all tasks processed
+
 - Handle partial failures without blocking independent tasks
 
 **Key Implementation Points**:
+
 ```python
 class TaskOrchestrator:
     def __init__(self, executor: TaskExecutor):
@@ -347,18 +417,27 @@ class TaskOrchestrator:
             self.executor.dep_graph.mark_completed(*completed_ids)
         
         return results
-```
+
+```text
 
 #### Issue #10: Task Result Collection and Management
+
 - Create `ResultManager` class for centralized storage
+
 - Store results with metadata (task_id, status, duration, agent_id)
+
 - Track success/failure counts
+
 - Implement result aggregation by status
+
 - Generate execution summary reports
+
 - Support result export (JSON, CSV)
+
 - Handle partial results from failed tasks
 
 **Key Implementation Points**:
+
 ```python
 from dataclasses import dataclass
 from datetime import datetime
@@ -386,17 +465,24 @@ class ResultManager:
             'successful': self.success_count,
             'failed': self.failure_count
         }
-```
+
+```text
 
 #### Issue #11: Dynamic Dependency Discovery and Graph Updates
 - Support adding tasks dynamically during execution
+
 - Implement thread-safe graph updates
+
 - Rebuild topological sort on updates
+
 - Validate no cycles introduced
+
 - Queue newly discovered tasks
+
 - Handle concurrent graph update race conditions
 
 **Key Implementation Points**:
+
 ```python
 class DynamicDependencyManager:
     def __init__(self, dep_graph: DependencyGraph):
@@ -411,21 +497,32 @@ class DynamicDependencyManager:
                     raise ValueError(f"Adding task {task_id} would create cycle")
                 self.dep_graph.add_task(task_id, task_data['dependencies'])
             self.dep_graph.rebuild()
-```
+
+```text
 
 #### Issue #12: Main Entry Point and CLI Integration
 - Create main async entry point (main.py)
+
 - Initialize all components in order
+
 - Load configuration from file
+
 - Fetch tasks from GitHub
+
 - Build dependency graph
+
 - Execute orchestration loop
+
 - Post results back to GitHub
+
 - Implement CLI with argparse/click
+
 - Add verbose/debug modes
+
 - Handle graceful shutdown (SIGINT/SIGTERM)
 
 **Key Implementation Points**:
+
 ```python
 import asyncio
 import sys
@@ -471,7 +568,8 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-```
+
+```text
 
 ### Phase 5: Configuration & Automation
 
@@ -479,12 +577,17 @@ if __name__ == "__main__":
 
 #### Issue #13: Configuration Management with Pydantic
 - Define Pydantic models for all settings
+
 - Parse YAML/JSON config files
+
 - Implement validation rules (min/max agents, required fields)
+
 - Support environment variable overrides
+
 - Provide error handling for invalid config
 
 **Key Configuration Structure**:
+
 ```python
 from pydantic import BaseModel, Field
 
@@ -518,17 +621,24 @@ class OrchestratorConfig(BaseModel):
     agent: AgentConfig
     automation: AutomationConfig
     logging_level: str = "INFO"
-```
+
+```text
 
 #### Issue #14: Structured Logging with structlog
 - Configure structlog for contextual logging
+
 - Log significant events (dispatch, completion, error)
+
 - Add correlation IDs and timestamps
+
 - Use JSONRenderer for output
+
 - Support adjustable logging levels
+
 - Integrate into all components
 
 **Key Implementation Points**:
+
 ```python
 import structlog
 
@@ -541,24 +651,35 @@ structlog.configure(
 
 logger = structlog.get_logger()
 logger.info("task_dispatched", task_id=task_id, agent_id=agent.id)
-```
+
+```text
 
 #### Issue #15: GitHub Automation Features
 - Post orchestration results as GitHub comments
+
 - Auto-merge successful PRs (configurable)
+
 - Update issue status/labels automatically
+
 - Support status label prefix from config
+
 - Provide toggles for automation features
+
 - Handle GitHub rate limits
 
 #### Issue #16: Retry Logic and Failure Handling
 - Implement exponential backoff for retries
+
 - Make retry behavior configurable
+
 - Only retry recoverable/transient failures
+
 - Log all retry events
+
 - Expose retry status in task results
 
 **Key Implementation Points**:
+
 ```python
 async def execute_with_retry(task_id: str, task_data: dict, max_attempts: int = 3):
     for attempt in range(max_attempts):
@@ -570,15 +691,22 @@ async def execute_with_retry(task_id: str, task_data: dict, max_attempts: int = 
             if attempt == max_attempts - 1:
                 raise
             await asyncio.sleep(2 ** attempt)  # Exponential backoff
-```
+
+```text
 
 #### Issue #17: Progress Monitoring and Metrics
 - Create `ProgressMonitor` class
+
 - Track task states (completed, failed, in progress)
+
 - Update stats after status changes
+
 - Provide real-time reporting (JSON/dict)
+
 - Expose metrics (throughput, duration, remaining)
+
 - Support dashboard/CLI integration
+
 - Log snapshots at regular intervals
 
 ### Phase 6: Testing & Monitoring
@@ -587,91 +715,142 @@ async def execute_with_retry(task_id: str, task_data: dict, max_attempts: int = 
 
 #### Issue #18: Unit Tests for Dependency Graph
 - Test adding/removing tasks
+
 - Test marking completion
+
 - Test cycle detection
+
 - Validate topological sort order
+
 - Test dynamic graph updates (concurrency, race conditions)
+
 - Achieve high coverage with pytest
 
 #### Issue #19: Unit & Integration Tests for Agent Pool
 - Test agent allocation and status transitions
+
 - Test edge cases (no idle agents, max agents)
+
 - Test concurrent allocation
+
 - Test agent recovery/failure scenarios
+
 - Mock agents for deterministic results
 
 #### Issue #20: Integration Tests with Mock APIs
 - Mock GitHub and Codegen APIs
+
 - Simulate various task inputs
+
 - Test orchestration and dependency resolution
+
 - Assert expected outputs for all flows
+
 - Test error cases (API failure, timeouts, retries)
 
 #### Issue #21: End-to-End Orchestration Tests
 - Full workflow validation with mocked/real endpoints
+
 - Test against sample repo/project board
+
 - Assert final status for all tasks
+
 - Test results posting and auto-merge
+
 - Handle shutdown and recovery paths
 
 #### Issue #22: Performance Benchmarking
 - Benchmark parallel vs. sequential execution
+
 - Test variable agent pool sizes (1-10)
+
 - Measure execution time, throughput, efficiency
+
 - Report and visualize results
+
 - Integrate with CI for regression checks
 
 #### Issue #23: Error Scenario Testing
 - Simulate API failures, timeouts, network issues
+
 - Validate retry/backoff triggers
+
 - Assert clear error reporting
+
 - Test partial result handling
+
 - Test shutdown/recovery after critical failure
 
 #### Issue #24: Documentation and Usage Guides
 - Comprehensive README with setup instructions
+
 - Inline code documentation
+
 - Architecture overview diagram
+
 - Configuration guide, troubleshooting, FAQ
+
 - Examples and templates
+
 - CI/CD integration guide
 
 ## Key Design Principles
 
 ### 1. **Dependency-Aware Parallel Execution**
+
 - Tasks execute as soon as dependencies are met
+
 - Independent tasks run concurrently (up to 10)
+
 - No artificial synchronization barriers
+
 - Failures don't block independent task paths
 
 ### 2. **Robust Error Handling**
+
 - Retry logic with exponential backoff
+
 - Graceful degradation for transient failures
+
 - Clear error reporting and logging
+
 - Partial result preservation
 
 ### 3. **Configuration-Driven**
+
 - All settings externalized to config files
+
 - Environment variable overrides
+
 - Validation with Pydantic
+
 - Sensible defaults provided
 
 ### 4. **Observability**
+
 - Structured logging with correlation IDs
+
 - Real-time progress monitoring
+
 - Execution metrics and statistics
+
 - Result persistence for analysis
 
 ### 5. **Testing**
+
 - Unit tests for all components
+
 - Integration tests with mocked APIs
+
 - End-to-end orchestration tests
+
 - Performance benchmarking
+
 - Error scenario coverage
 
 ## Project File Structure
 
-```
+```text
 parallel-codegen-orchestrator/
 ├── README.md
 ├── AGENTS.md                    # This file
@@ -716,7 +895,8 @@ parallel-codegen-orchestrator/
 │   └── test_errors.py           # Issue #23
 └── docs/
     └── architecture.md          # Architecture docs (Issue #24)
-```
+
+```text
 
 ## Implementation Order & Dependencies
 
@@ -729,7 +909,8 @@ parallel-codegen-orchestrator/
 6. **Phase 6** (Issues #18-24): Testing & Documentation → Quality assurance
 
 ### Dependency Map
-```
+
+```text
 #1 (GitHub REST) ──┬──> #3 (Dep Parsing) ──> #4 (Dep Graph) ──┬──> #8 (Executor)
                    │                                            │
 #2 (GitHub GraphQL)┘                                            │
@@ -750,7 +931,8 @@ parallel-codegen-orchestrator/
                                             ┌───────────────────────────────────┘
                                             ▼
                                     #18-24 (Testing & Docs)
-```
+
+```text
 
 ## Configuration Example
 
@@ -780,11 +962,13 @@ automation:
   status_label_prefix: "status:"
 
 logging_level: "INFO"
-```
+
+```text
 
 ## Usage Examples
 
 ### Basic Usage
+
 ```bash
 # Run orchestrator with config file
 python main.py --config config.yaml
@@ -797,9 +981,11 @@ python main.py --config config.yaml --debug
 
 # Dry run (validate without executing)
 python main.py --config config.yaml --dry-run
-```
+
+```text
 
 ### Programmatic Usage
+
 ```python
 import asyncio
 from src.config import OrchestratorConfig
@@ -811,83 +997,128 @@ async def run_orchestration():
     print(f"Completed {len(results)} tasks")
 
 asyncio.run(run_orchestration())
-```
+
+```text
 
 ## Testing Strategy
 
 ### Unit Tests
+
 - Test each component in isolation
+
 - Mock external dependencies
+
 - Focus on edge cases and error conditions
+
 - Target 80%+ code coverage
 
 ### Integration Tests
+
 - Test component interactions
+
 - Use mocked APIs for isolation
+
 - Validate data flow between components
+
 - Test concurrent execution scenarios
 
 ### End-to-End Tests
+
 - Full orchestration workflow
+
 - Real or well-mocked APIs
+
 - Multiple tasks with dependencies
+
 - Result posting and automation
+
 - Error and recovery paths
 
 ### Performance Tests
+
 - Benchmark parallel vs. sequential execution
+
 - Test scaling with agent pool sizes
+
 - Measure throughput and latency
+
 - Identify bottlenecks
 
 ## Common Pitfalls & Solutions
 
 ### 1. **Circular Dependencies**
+
 - **Problem**: Tasks reference each other in cycles
+
 - **Solution**: Validate graph before execution, provide clear cycle path in error
 
 ### 2. **Race Conditions in Agent Pool**
+
 - **Problem**: Multiple tasks trying to allocate same agent
+
 - **Solution**: Use asyncio.Lock for agent state transitions
 
 ### 3. **GitHub Rate Limits**
+
 - **Problem**: API calls exceed rate limits
+
 - **Solution**: Implement exponential backoff, batch operations, cache results
 
 ### 4. **Task Timeouts**
+
 - **Problem**: Agents hang indefinitely
+
 - **Solution**: Implement configurable timeouts with graceful cleanup
 
 ### 5. **Memory Leaks in Long-Running Orchestration**
+
 - **Problem**: Result accumulation consumes memory
+
 - **Solution**: Stream results to disk, implement periodic cleanup
 
 ### 6. **Graceful Shutdown**
+
 - **Problem**: SIGINT leaves tasks in inconsistent state
+
 - **Solution**: Catch signals, cancel pending tasks, save partial results
 
 ## Monitoring & Observability
 
 ### Structured Logging
 All components emit structured logs with:
+
 - **Timestamp**: ISO format
+
 - **Level**: INFO, WARNING, ERROR, DEBUG
+
 - **Event**: Descriptive event name (e.g., "task_dispatched")
+
 - **Context**: task_id, agent_id, duration, status
+
 - **Correlation ID**: Trace requests across components
 
 ### Metrics to Track
+
 - Total tasks executed
+
 - Success/failure rates
+
 - Average task duration
+
 - Agent utilization (% time busy)
+
 - API call counts and errors
+
 - Queue depths and wait times
 
 ### Health Checks
+
 - Agent pool status (idle/busy counts)
+
 - Dependency graph state (active/completed)
+
 - API connectivity (GitHub, Codegen)
+
 - Queue depths and backlog
 
 ## Security Considerations
@@ -916,6 +1147,7 @@ All components emit structured logs with:
 ## Success Criteria
 
 A successful implementation will:
+
 1. ✅ Fetch tasks from GitHub (issues/projects)
 2. ✅ Parse dependencies from issue descriptions
 3. ✅ Build valid dependency graph with cycle detection
@@ -931,19 +1163,29 @@ A successful implementation will:
 ## References & Resources
 
 - [Python graphlib Documentation](https://docs.python.org/3/library/graphlib.html)
+
 - [asyncio Documentation](https://docs.python.org/3/library/asyncio.html)
+
 - [PyGithub Documentation](https://pygithub.readthedocs.io/)
+
 - [GitHub REST API](https://docs.github.com/en/rest)
+
 - [GitHub GraphQL API](https://docs.github.com/en/graphql)
+
 - [GitHub Projects v2 API](https://docs.github.com/en/issues/planning-and-tracking-with-projects/automating-your-project/using-the-api-to-manage-projects)
+
 - [Codegen API Reference](https://docs.codegen.com/api-reference/overview)
+
 - [Pydantic Documentation](https://docs.pydantic.dev/)
+
 - [structlog Documentation](https://www.structlog.org/en/stable/)
+
 - [pytest Documentation](https://docs.pytest.org/en/stable/)
 
 ## Contribution Guidelines
 
 When implementing features:
+
 1. Follow the phase order and dependency chain
 2. Write tests alongside implementation
 3. Use structured logging for all significant events
@@ -955,15 +1197,25 @@ When implementing features:
 ## Getting Started Checklist
 
 For coding agents starting work:
+
 - [ ] Read this entire AGENTS.md document
+
 - [ ] Review all open issues in GitHub (#1-24)
+
 - [ ] Understand the epic structure (Issue #25)
+
 - [ ] Set up development environment
+
 - [ ] Install dependencies from requirements.txt
+
 - [ ] Configure API tokens (GitHub, Codegen)
+
 - [ ] Run existing tests to verify setup
+
 - [ ] Start with Phase 1, Issue #1
+
 - [ ] Follow dependency chain for implementation order
+
 - [ ] Update issue status as you progress
 
 ---
