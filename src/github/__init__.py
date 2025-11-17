@@ -1,4 +1,4 @@
-"""GitHub Integration Module"""
+"""GitHub Integration Module."""
 
 from .rest_api import GitHubIntegration
 

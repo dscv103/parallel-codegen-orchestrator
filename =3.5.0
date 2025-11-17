@@ -1,0 +1,43 @@
+Collecting ruff
+  Downloading ruff-0.14.5-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (25 kB)
+Collecting mypy
+  Downloading mypy-1.18.2-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.2 kB)
+Requirement already satisfied: black in ./.venv/lib/python3.13/site-packages (25.11.0)
+Requirement already satisfied: isort in ./.venv/lib/python3.13/site-packages (6.1.0)
+Collecting pre-commit
+  Downloading pre_commit-4.4.0-py2.py3-none-any.whl.metadata (1.2 kB)
+Requirement already satisfied: typing_extensions>=4.6.0 in /usr/local/lib/python3.13/site-packages (from mypy) (4.12.2)
+Requirement already satisfied: mypy_extensions>=1.0.0 in ./.venv/lib/python3.13/site-packages (from mypy) (1.1.0)
+Requirement already satisfied: pathspec>=0.9.0 in ./.venv/lib/python3.13/site-packages (from mypy) (0.12.1)
+Requirement already satisfied: click>=8.0.0 in /usr/local/lib/python3.13/site-packages (from black) (8.2.1)
+Requirement already satisfied: packaging>=22.0 in ./.venv/lib/python3.13/site-packages (from black) (25.0)
+Requirement already satisfied: platformdirs>=2 in ./.venv/lib/python3.13/site-packages (from black) (4.5.0)
+Requirement already satisfied: pytokens>=0.3.0 in ./.venv/lib/python3.13/site-packages (from black) (0.3.0)
+Collecting cfgv>=2.0.0 (from pre-commit)
+  Downloading cfgv-3.4.0-py2.py3-none-any.whl.metadata (8.5 kB)
+Collecting identify>=1.0.0 (from pre-commit)
+  Downloading identify-2.6.15-py2.py3-none-any.whl.metadata (4.4 kB)
+Collecting nodeenv>=0.11.1 (from pre-commit)
+  Downloading nodeenv-1.9.1-py2.py3-none-any.whl.metadata (21 kB)
+Requirement already satisfied: pyyaml>=5.1 in /usr/local/lib/python3.13/site-packages (from pre-commit) (6.0.2)
+Collecting virtualenv>=20.10.0 (from pre-commit)
+  Downloading virtualenv-20.35.4-py3-none-any.whl.metadata (4.6 kB)
+Collecting distlib<1,>=0.3.7 (from virtualenv>=20.10.0->pre-commit)
+  Downloading distlib-0.4.0-py2.py3-none-any.whl.metadata (5.2 kB)
+Collecting filelock<4,>=3.12.2 (from virtualenv>=20.10.0->pre-commit)
+  Downloading filelock-3.20.0-py3-none-any.whl.metadata (2.1 kB)
+Downloading ruff-0.14.5-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (13.8 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 13.8/13.8 MB 213.0 MB/s  0:00:00
+Downloading mypy-1.18.2-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (13.3 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 13.3/13.3 MB 172.6 MB/s  0:00:00
+Downloading pre_commit-4.4.0-py2.py3-none-any.whl (226 kB)
+Downloading cfgv-3.4.0-py2.py3-none-any.whl (7.2 kB)
+Downloading identify-2.6.15-py2.py3-none-any.whl (99 kB)
+Downloading nodeenv-1.9.1-py2.py3-none-any.whl (22 kB)
+Downloading virtualenv-20.35.4-py3-none-any.whl (6.0 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 6.0/6.0 MB 201.6 MB/s  0:00:00
+Downloading distlib-0.4.0-py2.py3-none-any.whl (469 kB)
+Downloading filelock-3.20.0-py3-none-any.whl (16 kB)
+Installing collected packages: distlib, ruff, nodeenv, mypy, identify, filelock, cfgv, virtualenv, pre-commit
+
+Successfully installed cfgv-3.4.0 distlib-0.4.0 filelock-3.20.0 identify-2.6.15 mypy-1.18.2 nodeenv-1.9.1 pre-commit-4.4.0 ruff-0.14.5 virtualenv-20.35.4
