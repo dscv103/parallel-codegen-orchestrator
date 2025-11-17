@@ -64,6 +64,7 @@ class GitHubIntegration:
         repo_name: str,
         state: str = "open",
         labels: list[str] | None = None,
+        max_retries: int = 3,
     ) -> Iterator[Issue]:
         """Fetch issues from repository with filtering and pagination support.
 
@@ -71,13 +72,14 @@ class GitHubIntegration:
             repo_name: Repository name in format 'owner/repo'
             state: Issue state filter ('open', 'closed', 'all')
             labels: Optional list of label names to filter by
+            max_retries: Maximum number of retry attempts for rate limit errors
 
         Returns:
             Iterator of Issue objects
 
         Raises:
             GithubException: If repository access fails
-            RateLimitExceededException: If rate limit exceeded
+            RateLimitExceededException: If rate limit exceeded after retries
         """
         repo = self._get_repository(repo_name)
 
@@ -86,42 +88,62 @@ class GitHubIntegration:
         if labels:
             kwargs["labels"] = labels
 
-        # PyGithub handles pagination automatically
-        try:
-            issues = repo.get_issues(**kwargs)
-            # Filter out pull requests (GitHub API returns PRs as issues)
-            for issue in issues:
-                if not issue.pull_request:
-                    yield issue
-        except RateLimitExceededException:
-            self._handle_rate_limit()
-            raise
+        # Retry loop with exponential backoff
+        for attempt in range(max_retries):
+            try:
+                issues = repo.get_issues(**kwargs)
+                # Filter out pull requests (GitHub API returns PRs as issues)
+                for issue in issues:
+                    if not issue.pull_request:
+                        yield issue
+                return  # Success, exit retry loop
+            except RateLimitExceededException:
+                if attempt < max_retries - 1:
+                    # Wait for rate limit reset before retrying
+                    self._handle_rate_limit()
+                    # Optional exponential backoff (additional wait)
+                    time.sleep(2**attempt)
+                else:
+                    # Exhausted retries, raise the exception
+                    raise
 
     def fetch_pull_requests(
         self,
         repo_name: str,
         state: str = "open",
+        max_retries: int = 3,
     ) -> Iterator[PullRequest]:
         """Fetch pull requests with metadata from repository.
 
         Args:
             repo_name: Repository name in format 'owner/repo'
             state: PR state filter ('open', 'closed', 'all')
+            max_retries: Maximum number of retry attempts for rate limit errors
 
         Returns:
             Iterator of PullRequest objects with full metadata
 
         Raises:
             GithubException: If repository access fails
+            RateLimitExceededException: If rate limit exceeded after retries
         """
         repo = self._get_repository(repo_name)
 
-        try:
-            pulls = repo.get_pulls(state=state)
-            yield from pulls
-        except RateLimitExceededException:
-            self._handle_rate_limit()
-            raise
+        # Retry loop with exponential backoff
+        for attempt in range(max_retries):
+            try:
+                pulls = repo.get_pulls(state=state)
+                yield from pulls
+                return  # Success, exit retry loop
+            except RateLimitExceededException:
+                if attempt < max_retries - 1:
+                    # Wait for rate limit reset before retrying
+                    self._handle_rate_limit()
+                    # Optional exponential backoff (additional wait)
+                    time.sleep(2**attempt)
+                else:
+                    # Exhausted retries, raise the exception
+                    raise
 
     def update_issue_status(
         self,

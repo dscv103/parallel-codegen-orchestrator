@@ -233,6 +233,37 @@ class TestGitHubIntegration:
             list(github_integration.fetch_issues("test_org/test_repo"))
 
     @pytest.mark.usefixtures("mock_github")
+    @patch("time.sleep")  # Mock sleep to avoid actual delays in tests
+    def test_rate_limit_retry_succeeds(self, mock_sleep, github_integration):
+        """Test that rate limit retry logic works and succeeds on second attempt"""
+        mock_repo = Mock(spec=Repository)
+        mock_issue = Mock(spec=Issue)
+        mock_issue.number = 1
+        mock_issue.pull_request = None
+
+        # First call raises rate limit, second succeeds
+        mock_repo.get_issues.side_effect = [
+            RateLimitExceededException(403, {"message": "Rate limit exceeded"}),
+            [mock_issue],
+        ]
+        github_integration.github.get_repo.return_value = mock_repo
+
+        # Mock rate limit for _handle_rate_limit call
+        mock_rate_limit = Mock()
+        mock_rate_limit.core.remaining = 0
+        mock_rate_limit.core.limit = EXPECTED_RATE_LIMIT_TOTAL
+        mock_rate_limit.core.reset.timestamp.return_value = EXPECTED_TIMESTAMP
+        github_integration.github.get_rate_limit.return_value = mock_rate_limit
+
+        # Execute
+        issues = list(github_integration.fetch_issues("test_org/test_repo"))
+
+        # Assert - should succeed after one retry
+        assert len(issues) == 1
+        assert issues[0].number == 1
+        assert mock_repo.get_issues.call_count == 2  # Initial + 1 retry
+
+    @pytest.mark.usefixtures("mock_github")
     def test_fetch_issues_with_labels_filter(self, github_integration):
         """Test fetching issues with label filtering"""
         mock_repo = Mock(spec=Repository)
