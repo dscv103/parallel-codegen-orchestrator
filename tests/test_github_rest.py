@@ -96,7 +96,10 @@ class TestGitHubIntegration:
         """Test issue fetching handles pagination"""
         mock_repo = Mock(spec=Repository)
         # Create mock issues to simulate pagination
-        mock_issues = [Mock(spec=Issue, number=i, title=f"Issue {i}", pull_request=None) for i in range(EXPECTED_PAGINATION_COUNT)]
+        mock_issues = [
+            Mock(spec=Issue, number=i, title=f"Issue {i}", pull_request=None)
+            for i in range(EXPECTED_PAGINATION_COUNT)
+        ]
         mock_repo.get_issues.return_value = mock_issues
         mock_github.get_repo.return_value = mock_repo
 
@@ -208,7 +211,9 @@ class TestGitHubIntegration:
     def test_error_handling_invalid_repo(self, github_integration):
         """Test error handling for invalid repository"""
         # Must happen after initialization, so we need to set it on github_integration.github
-        github_integration.github.get_repo.side_effect = GithubException(404, {"message": "Not Found"})
+        github_integration.github.get_repo.side_effect = GithubException(
+            404, {"message": "Not Found"},
+        )
 
         # Execute and Assert
         with pytest.raises(GithubException):

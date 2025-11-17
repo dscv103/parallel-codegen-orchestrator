@@ -39,7 +39,9 @@ class GitHubGraphQL:
         )
 
     async def _execute_query(
-        self, query: str, variables: dict[str, Any] | None = None,
+        self,
+        query: str,
+        variables: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Execute a GraphQL query with error handling.
 
@@ -72,7 +74,9 @@ class GitHubGraphQL:
         return data
 
     async def fetch_project_items(
-        self, project_id: str, first: int = 100,
+        self,
+        project_id: str,
+        first: int = 100,
     ) -> list[dict[str, Any]]:
         """Fetch all items from a GitHub Projects v2 board with pagination.
 
@@ -250,7 +254,9 @@ class GitHubGraphQL:
         return project
 
     async def get_custom_field_value(
-        self, item_id: str, field_name: str,
+        self,
+        item_id: str,
+        field_name: str,
     ) -> str | None:
         """Retrieve a custom field value from a project item.
 
@@ -365,7 +371,9 @@ class GitHubGraphQL:
         return True
 
     async def add_labels_to_item(
-        self, item_id: str, label_ids: list[str],
+        self,
+        item_id: str,
+        label_ids: list[str],
     ) -> bool:
         """Add labels to a project item (issue/PR).
 
@@ -403,7 +411,9 @@ class GitHubGraphQL:
         return True
 
     async def assign_users_to_item(
-        self, item_id: str, assignee_ids: list[str],
+        self,
+        item_id: str,
+        assignee_ids: list[str],
     ) -> bool:
         """Assign users to a project item (issue/PR).
 
@@ -448,6 +458,11 @@ class GitHubGraphQL:
         """Enter async context manager."""
         return self
 
-    async def __aexit__(self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: types.TracebackType | None) -> None:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ) -> None:
         """Exit async context manager and cleanup."""
         await self.close()

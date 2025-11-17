@@ -112,7 +112,9 @@ class TestFetchProjectItems:
 
     @pytest.mark.asyncio
     async def test_fetch_project_items_with_pagination(
-        self, github_graphql, mock_httpx_client,
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test fetching project items with pagination."""
         # First page response
@@ -167,7 +169,9 @@ class TestFetchProjectItems:
 
     @pytest.mark.asyncio
     async def test_fetch_project_items_with_errors(
-        self, github_graphql, mock_httpx_client,
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test handling GraphQL errors."""
         # Mock error response
@@ -192,7 +196,9 @@ class TestFetchProjectDetails:
 
     @pytest.mark.asyncio
     async def test_fetch_project_details_success(
-        self, github_graphql, mock_httpx_client,
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test successfully fetching project details."""
         mock_response = MagicMock()
@@ -237,7 +243,9 @@ class TestGetCustomFieldValue:
 
     @pytest.mark.asyncio
     async def test_get_custom_field_value_success(
-        self, github_graphql, mock_httpx_client,
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test successfully getting a custom field value."""
         mock_response = MagicMock()
@@ -256,7 +264,8 @@ class TestGetCustomFieldValue:
 
         # Execute
         result = await github_graphql.get_custom_field_value(
-            item_id="PVTI_123", field_name="Status",
+            item_id="PVTI_123",
+            field_name="Status",
         )
 
         # Verify
@@ -264,7 +273,9 @@ class TestGetCustomFieldValue:
 
     @pytest.mark.asyncio
     async def test_get_custom_field_value_not_found(
-        self, github_graphql, mock_httpx_client,
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test handling when field value is not found."""
         mock_response = MagicMock()
@@ -280,7 +291,8 @@ class TestGetCustomFieldValue:
 
         # Execute
         result = await github_graphql.get_custom_field_value(
-            item_id="PVTI_123", field_name="NonExistent",
+            item_id="PVTI_123",
+            field_name="NonExistent",
         )
 
         # Verify
@@ -292,7 +304,9 @@ class TestUpdateProjectItemStatus:
 
     @pytest.mark.asyncio
     async def test_update_project_item_status_success(
-        self, github_graphql, mock_httpx_client,
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test successfully updating project item status."""
         mock_response = MagicMock()
@@ -323,7 +337,9 @@ class TestUpdateProjectItemStatus:
 
     @pytest.mark.asyncio
     async def test_update_project_item_status_failure(
-        self, github_graphql, mock_httpx_client,
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test handling update failure."""
         mock_response = MagicMock()
@@ -422,7 +438,9 @@ class TestErrorHandling:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.side_effect = json.JSONDecodeError(
-            "Invalid JSON", "", 0,
+            "Invalid JSON",
+            "",
+            0,
         )
         mock_httpx_client.post.return_value = mock_response
 
@@ -455,13 +473,15 @@ class TestExecuteQueryEdgeCases:
 
     @pytest.mark.asyncio
     async def test_execute_query_with_variables(
-        self, github_graphql, mock_httpx_client
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test _execute_query correctly passes variables."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "data": {"viewer": {"login": "testuser"}}
+            "data": {"viewer": {"login": "testuser"}},
         }
         mock_httpx_client.post.return_value = mock_response
 
@@ -477,7 +497,9 @@ class TestExecuteQueryEdgeCases:
 
     @pytest.mark.asyncio
     async def test_execute_query_without_variables(
-        self, github_graphql, mock_httpx_client
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test _execute_query works without variables."""
         mock_response = MagicMock()
@@ -495,7 +517,9 @@ class TestExecuteQueryEdgeCases:
 
     @pytest.mark.asyncio
     async def test_execute_query_multiple_errors(
-        self, github_graphql, mock_httpx_client
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test handling multiple GraphQL errors."""
         mock_response = MagicMock()
@@ -504,7 +528,7 @@ class TestExecuteQueryEdgeCases:
             "errors": [
                 {"message": "Authentication required", "type": "UNAUTHORIZED"},
                 {"message": "Rate limit exceeded", "type": "RATE_LIMITED"},
-            ]
+            ],
         }
         mock_httpx_client.post.return_value = mock_response
 
@@ -517,13 +541,17 @@ class TestExecuteQueryEdgeCases:
 
     @pytest.mark.asyncio
     async def test_execute_query_http_status_errors(
-        self, github_graphql, mock_httpx_client
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test handling various HTTP status errors."""
         mock_response = MagicMock()
         mock_response.status_code = 401
         mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
-            "Unauthorized", request=MagicMock(), response=mock_response
+            "Unauthorized",
+            request=MagicMock(),
+            response=mock_response,
         )
         mock_httpx_client.post.return_value = mock_response
 
@@ -534,7 +562,7 @@ class TestExecuteQueryEdgeCases:
     async def test_execute_query_timeout(self, github_graphql, mock_httpx_client):
         """Test handling request timeout."""
         mock_httpx_client.post.side_effect = httpx.TimeoutException(
-            "Request timed out"
+            "Request timed out",
         )
 
         with pytest.raises(httpx.TimeoutException) as exc_info:
@@ -544,11 +572,13 @@ class TestExecuteQueryEdgeCases:
 
     @pytest.mark.asyncio
     async def test_execute_query_network_error(
-        self, github_graphql, mock_httpx_client
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test handling network connection errors."""
         mock_httpx_client.post.side_effect = httpx.ConnectError(
-            "Failed to connect"
+            "Failed to connect",
         )
 
         with pytest.raises(httpx.ConnectError):
@@ -560,7 +590,9 @@ class TestFetchProjectItemsEdgeCases:
 
     @pytest.mark.asyncio
     async def test_fetch_project_items_empty_project(
-        self, github_graphql, mock_httpx_client
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test fetching items from an empty project."""
         mock_response = MagicMock()
@@ -571,9 +603,9 @@ class TestFetchProjectItemsEdgeCases:
                     "items": {
                         "nodes": [],
                         "pageInfo": {"hasNextPage": False, "endCursor": None},
-                    }
-                }
-            }
+                    },
+                },
+            },
         }
         mock_httpx_client.post.return_value = mock_response
 
@@ -584,7 +616,9 @@ class TestFetchProjectItemsEdgeCases:
 
     @pytest.mark.asyncio
     async def test_fetch_project_items_with_pull_requests(
-        self, github_graphql, mock_httpx_client
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test fetching project items that include pull requests."""
         mock_response = MagicMock()
@@ -604,12 +638,12 @@ class TestFetchProjectItemsEdgeCases:
                                     "url": "https://github.com/org/repo/pull/42",
                                 },
                                 "fieldValues": {"nodes": []},
-                            }
+                            },
                         ],
                         "pageInfo": {"hasNextPage": False, "endCursor": None},
-                    }
-                }
-            }
+                    },
+                },
+            },
         }
         mock_httpx_client.post.return_value = mock_response
 
@@ -621,7 +655,9 @@ class TestFetchProjectItemsEdgeCases:
 
     @pytest.mark.asyncio
     async def test_fetch_project_items_custom_page_size(
-        self, github_graphql, mock_httpx_client
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test fetching project items with custom page size."""
         mock_response = MagicMock()
@@ -632,14 +668,15 @@ class TestFetchProjectItemsEdgeCases:
                     "items": {
                         "nodes": [{"id": f"PVTI_{i}"} for i in range(50)],
                         "pageInfo": {"hasNextPage": False, "endCursor": None},
-                    }
-                }
-            }
+                    },
+                },
+            },
         }
         mock_httpx_client.post.return_value = mock_response
 
         result = await github_graphql.fetch_project_items(
-            project_id="PVT_test", first=50
+            project_id="PVT_test",
+            first=50,
         )
 
         assert len(result) == 50
@@ -649,7 +686,9 @@ class TestFetchProjectItemsEdgeCases:
 
     @pytest.mark.asyncio
     async def test_fetch_project_items_with_all_field_types(
-        self, github_graphql, mock_httpx_client
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test fetching items with all custom field types."""
         mock_response = MagicMock()
@@ -680,14 +719,14 @@ class TestFetchProjectItemsEdgeCases:
                                             "field": {"name": "Priority"},
                                             "number": 5.0,
                                         },
-                                    ]
+                                    ],
                                 },
-                            }
+                            },
                         ],
                         "pageInfo": {"hasNextPage": False, "endCursor": None},
-                    }
-                }
-            }
+                    },
+                },
+            },
         }
         mock_httpx_client.post.return_value = mock_response
 
@@ -704,7 +743,9 @@ class TestFetchProjectItemsEdgeCases:
 
     @pytest.mark.asyncio
     async def test_fetch_project_items_null_content(
-        self, github_graphql, mock_httpx_client
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test fetching items with null content (archived items)."""
         mock_response = MagicMock()
@@ -718,12 +759,12 @@ class TestFetchProjectItemsEdgeCases:
                                 "id": "PVTI_1",
                                 "content": None,
                                 "fieldValues": {"nodes": []},
-                            }
+                            },
                         ],
                         "pageInfo": {"hasNextPage": False, "endCursor": None},
-                    }
-                }
-            }
+                    },
+                },
+            },
         }
         mock_httpx_client.post.return_value = mock_response
 
@@ -734,7 +775,9 @@ class TestFetchProjectItemsEdgeCases:
 
     @pytest.mark.asyncio
     async def test_fetch_project_items_large_pagination(
-        self, github_graphql, mock_httpx_client
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test fetching items with many pages."""
         # Create 5 pages of responses
@@ -745,16 +788,15 @@ class TestFetchProjectItemsEdgeCases:
                     "node": {
                         "items": {
                             "nodes": [
-                                {"id": f"PVTI_{i * 100 + j}", "content": {}}
-                                for j in range(100)
+                                {"id": f"PVTI_{i * 100 + j}", "content": {}} for j in range(100)
                             ],
                             "pageInfo": {
                                 "hasNextPage": i < 4,
                                 "endCursor": f"cursor_{i}" if i < 4 else None,
                             },
-                        }
-                    }
-                }
+                        },
+                    },
+                },
             }
             pages.append(page)
 
@@ -779,7 +821,9 @@ class TestFetchProjectDetailsEdgeCases:
 
     @pytest.mark.asyncio
     async def test_fetch_project_details_closed_project(
-        self, github_graphql, mock_httpx_client
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test fetching details of a closed project."""
         mock_response = MagicMock()
@@ -792,8 +836,8 @@ class TestFetchProjectDetailsEdgeCases:
                     "public": False,
                     "closed": True,
                     "fields": {"nodes": []},
-                }
-            }
+                },
+            },
         }
         mock_httpx_client.post.return_value = mock_response
 
@@ -804,7 +848,9 @@ class TestFetchProjectDetailsEdgeCases:
 
     @pytest.mark.asyncio
     async def test_fetch_project_details_with_iteration_field(
-        self, github_graphql, mock_httpx_client
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test fetching project with iteration field type."""
         mock_response = MagicMock()
@@ -826,13 +872,13 @@ class TestFetchProjectDetailsEdgeCases:
                                     "iterations": [
                                         {"id": "ITER_1", "title": "Sprint 1"},
                                         {"id": "ITER_2", "title": "Sprint 2"},
-                                    ]
+                                    ],
                                 },
-                            }
-                        ]
+                            },
+                        ],
                     },
-                }
-            }
+                },
+            },
         }
         mock_httpx_client.post.return_value = mock_response
 
@@ -845,7 +891,9 @@ class TestFetchProjectDetailsEdgeCases:
 
     @pytest.mark.asyncio
     async def test_fetch_project_details_no_description(
-        self, github_graphql, mock_httpx_client
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test fetching project without description."""
         mock_response = MagicMock()
@@ -858,8 +906,8 @@ class TestFetchProjectDetailsEdgeCases:
                     "public": True,
                     "closed": False,
                     "fields": {"nodes": []},
-                }
-            }
+                },
+            },
         }
         mock_httpx_client.post.return_value = mock_response
 
@@ -869,7 +917,9 @@ class TestFetchProjectDetailsEdgeCases:
 
     @pytest.mark.asyncio
     async def test_fetch_project_details_not_found(
-        self, github_graphql, mock_httpx_client
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test fetching non-existent project."""
         mock_response = MagicMock()
@@ -889,7 +939,9 @@ class TestGetCustomFieldValueEdgeCases:
 
     @pytest.mark.asyncio
     async def test_get_custom_field_value_text_field(
-        self, github_graphql, mock_httpx_client
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test getting text field value."""
         mock_response = MagicMock()
@@ -900,21 +952,24 @@ class TestGetCustomFieldValueEdgeCases:
                     "fieldValueByName": {
                         "text": "This is a text value",
                         "field": {"name": "Notes"},
-                    }
-                }
-            }
+                    },
+                },
+            },
         }
         mock_httpx_client.post.return_value = mock_response
 
         result = await github_graphql.get_custom_field_value(
-            item_id="PVTI_123", field_name="Notes"
+            item_id="PVTI_123",
+            field_name="Notes",
         )
 
         assert result == "This is a text value"
 
     @pytest.mark.asyncio
     async def test_get_custom_field_value_empty_string(
-        self, github_graphql, mock_httpx_client
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test getting empty string field value."""
         mock_response = MagicMock()
@@ -925,14 +980,15 @@ class TestGetCustomFieldValueEdgeCases:
                     "fieldValueByName": {
                         "text": "",
                         "field": {"name": "Notes"},
-                    }
-                }
-            }
+                    },
+                },
+            },
         }
         mock_httpx_client.post.return_value = mock_response
 
         result = await github_graphql.get_custom_field_value(
-            item_id="PVTI_123", field_name="Notes"
+            item_id="PVTI_123",
+            field_name="Notes",
         )
 
         # Empty string should return None as it's falsy
@@ -940,7 +996,9 @@ class TestGetCustomFieldValueEdgeCases:
 
     @pytest.mark.asyncio
     async def test_get_custom_field_value_item_not_found(
-        self, github_graphql, mock_httpx_client
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test getting field value for non-existent item."""
         mock_response = MagicMock()
@@ -950,7 +1008,8 @@ class TestGetCustomFieldValueEdgeCases:
 
         with pytest.raises(GraphQLError) as exc_info:
             await github_graphql.get_custom_field_value(
-                item_id="PVTI_invalid", field_name="Status"
+                item_id="PVTI_invalid",
+                field_name="Status",
             )
 
         assert "Item not found" in str(exc_info.value)
@@ -958,7 +1017,9 @@ class TestGetCustomFieldValueEdgeCases:
 
     @pytest.mark.asyncio
     async def test_get_custom_field_value_unsupported_type(
-        self, github_graphql, mock_httpx_client
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test getting field value with unsupported field type."""
         mock_response = MagicMock()
@@ -969,14 +1030,15 @@ class TestGetCustomFieldValueEdgeCases:
                     "fieldValueByName": {
                         "field": {"name": "CustomField"},
                         # No name, text, date, or number fields
-                    }
-                }
-            }
+                    },
+                },
+            },
         }
         mock_httpx_client.post.return_value = mock_response
 
         result = await github_graphql.get_custom_field_value(
-            item_id="PVTI_123", field_name="CustomField"
+            item_id="PVTI_123",
+            field_name="CustomField",
         )
 
         assert result is None
@@ -987,7 +1049,9 @@ class TestUpdateProjectItemStatusEdgeCases:
 
     @pytest.mark.asyncio
     async def test_update_project_item_status_with_null_response(
-        self, github_graphql, mock_httpx_client
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test updating status with null response (should still succeed)."""
         mock_response = MagicMock()
@@ -995,9 +1059,9 @@ class TestUpdateProjectItemStatusEdgeCases:
         mock_response.json.return_value = {
             "data": {
                 "updateProjectV2ItemFieldValue": {
-                    "projectV2Item": None
-                }
-            }
+                    "projectV2Item": None,
+                },
+            },
         }
         mock_httpx_client.post.return_value = mock_response
 
@@ -1012,7 +1076,9 @@ class TestUpdateProjectItemStatusEdgeCases:
 
     @pytest.mark.asyncio
     async def test_update_project_item_status_invalid_option(
-        self, github_graphql, mock_httpx_client
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test updating status with invalid option ID."""
         mock_response = MagicMock()
@@ -1022,8 +1088,8 @@ class TestUpdateProjectItemStatusEdgeCases:
                 {
                     "message": "Option not found for field",
                     "type": "NOT_FOUND",
-                }
-            ]
+                },
+            ],
         }
         mock_httpx_client.post.return_value = mock_response
 
@@ -1043,7 +1109,9 @@ class TestAddLabelsEdgeCases:
 
     @pytest.mark.asyncio
     async def test_add_labels_empty_list(
-        self, github_graphql, mock_httpx_client
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test adding empty list of labels."""
         mock_response = MagicMock()
@@ -1052,10 +1120,10 @@ class TestAddLabelsEdgeCases:
             "data": {
                 "addLabelsToLabelable": {
                     "labelable": {
-                        "labels": {"nodes": []}
-                    }
-                }
-            }
+                        "labels": {"nodes": []},
+                    },
+                },
+            },
         }
         mock_httpx_client.post.return_value = mock_response
 
@@ -1068,7 +1136,9 @@ class TestAddLabelsEdgeCases:
 
     @pytest.mark.asyncio
     async def test_add_labels_single_label(
-        self, github_graphql, mock_httpx_client
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test adding a single label."""
         mock_response = MagicMock()
@@ -1078,11 +1148,11 @@ class TestAddLabelsEdgeCases:
                 "addLabelsToLabelable": {
                     "labelable": {
                         "labels": {
-                            "nodes": [{"name": "bug"}]
-                        }
-                    }
-                }
-            }
+                            "nodes": [{"name": "bug"}],
+                        },
+                    },
+                },
+            },
         }
         mock_httpx_client.post.return_value = mock_response
 
@@ -1097,7 +1167,9 @@ class TestAddLabelsEdgeCases:
 
     @pytest.mark.asyncio
     async def test_add_labels_invalid_item_id(
-        self, github_graphql, mock_httpx_client
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test adding labels to non-existent item."""
         mock_response = MagicMock()
@@ -1107,8 +1179,8 @@ class TestAddLabelsEdgeCases:
                 {
                     "message": "Could not resolve to a node with the global id of 'INVALID'",
                     "type": "NOT_FOUND",
-                }
-            ]
+                },
+            ],
         }
         mock_httpx_client.post.return_value = mock_response
 
@@ -1126,7 +1198,9 @@ class TestAssignUsersEdgeCases:
 
     @pytest.mark.asyncio
     async def test_assign_users_empty_list(
-        self, github_graphql, mock_httpx_client
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test assigning empty list of users."""
         mock_response = MagicMock()
@@ -1135,10 +1209,10 @@ class TestAssignUsersEdgeCases:
             "data": {
                 "addAssigneesToAssignable": {
                     "assignable": {
-                        "assignees": {"nodes": []}
-                    }
-                }
-            }
+                        "assignees": {"nodes": []},
+                    },
+                },
+            },
         }
         mock_httpx_client.post.return_value = mock_response
 
@@ -1151,7 +1225,9 @@ class TestAssignUsersEdgeCases:
 
     @pytest.mark.asyncio
     async def test_assign_users_multiple_users(
-        self, github_graphql, mock_httpx_client
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test assigning multiple users."""
         mock_response = MagicMock()
@@ -1165,11 +1241,11 @@ class TestAssignUsersEdgeCases:
                                 {"login": "user1"},
                                 {"login": "user2"},
                                 {"login": "user3"},
-                            ]
-                        }
-                    }
-                }
-            }
+                            ],
+                        },
+                    },
+                },
+            },
         }
         mock_httpx_client.post.return_value = mock_response
 
@@ -1229,13 +1305,14 @@ class TestContextManagerEdgeCases:
 
     @pytest.mark.asyncio
     async def test_context_manager_multiple_operations(
-        self, mock_httpx_client
+        self,
+        mock_httpx_client,
     ):
         """Test multiple operations within context manager."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "data": {"node": {"title": "Test", "fields": {"nodes": []}}}
+            "data": {"node": {"title": "Test", "fields": {"nodes": []}}},
         }
         mock_httpx_client.post.return_value = mock_response
 
@@ -1262,8 +1339,8 @@ class TestRateLimitAndRetry:
                 {
                     "message": "API rate limit exceeded",
                     "type": "RATE_LIMITED",
-                }
-            ]
+                },
+            ],
         }
         mock_httpx_client.post.return_value = mock_response
 
@@ -1278,7 +1355,9 @@ class TestRateLimitAndRetry:
         mock_response = MagicMock()
         mock_response.status_code = 500
         mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
-            "Internal Server Error", request=MagicMock(), response=mock_response
+            "Internal Server Error",
+            request=MagicMock(),
+            response=mock_response,
         )
         mock_httpx_client.post.return_value = mock_response
 
@@ -1302,7 +1381,9 @@ class TestMalformedResponses:
 
     @pytest.mark.asyncio
     async def test_unexpected_response_structure(
-        self, github_graphql, mock_httpx_client
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test response with unexpected structure."""
         mock_response = MagicMock()
@@ -1312,10 +1393,10 @@ class TestMalformedResponses:
                 "node": {
                     "items": {
                         # Missing 'nodes' field
-                        "pageInfo": {"hasNextPage": False, "endCursor": None}
-                    }
-                }
-            }
+                        "pageInfo": {"hasNextPage": False, "endCursor": None},
+                    },
+                },
+            },
         }
         mock_httpx_client.post.return_value = mock_response
 
@@ -1329,8 +1410,8 @@ class TestMalformedResponses:
         mock_response.status_code = 200
         mock_response.json.return_value = {
             "errors": [
-                {"message": ""}  # Empty message
-            ]
+                {"message": ""},  # Empty message
+            ],
         }
         mock_httpx_client.post.return_value = mock_response
 
@@ -1342,15 +1423,17 @@ class TestMalformedResponses:
 
     @pytest.mark.asyncio
     async def test_error_without_message_field(
-        self, github_graphql, mock_httpx_client
+        self,
+        github_graphql,
+        mock_httpx_client,
     ):
         """Test error object without message field."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
             "errors": [
-                {"type": "UNKNOWN"}  # No message field
-            ]
+                {"type": "UNKNOWN"},  # No message field
+            ],
         }
         mock_httpx_client.post.return_value = mock_response
 

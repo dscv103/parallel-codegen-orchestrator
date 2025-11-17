@@ -62,12 +62,7 @@ async def demo_project_items(graphql: GitHubGraphQL, project_id: str) -> None:
                 logger.info("  Custom Fields:")
                 for fv in field_values:
                     field_name = fv.get("field", {}).get("name", "Unknown")
-                    value = (
-                        fv.get("name")
-                        or fv.get("text")
-                        or fv.get("date")
-                        or fv.get("number")
-                    )
+                    value = fv.get("name") or fv.get("text") or fv.get("date") or fv.get("number")
                     if value:
                         logger.info("    - %s: %s", field_name, value)
     except GraphQLError:
