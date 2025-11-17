@@ -3,6 +3,7 @@
 Provides methods for GitHub Projects v2 management and queries.
 """
 
+import types
 from typing import Any
 
 import httpx
@@ -10,8 +11,6 @@ import httpx
 
 class GraphQLError(Exception):
     """Exception raised for GraphQL API errors."""
-
-    pass
 
 
 class GitHubGraphQL:
@@ -40,7 +39,7 @@ class GitHubGraphQL:
         )
 
     async def _execute_query(
-        self, query: str, variables: dict[str, Any] | None = None
+        self, query: str, variables: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Execute a GraphQL query with error handling.
 
@@ -61,18 +60,19 @@ class GitHubGraphQL:
 
         response = await self.client.post("", json=payload)
         response.raise_for_status()
-        
+
         data = response.json()
 
         # Check for GraphQL errors
         if "errors" in data:
             error_messages = [err.get("message", "Unknown error") for err in data["errors"]]
-            raise GraphQLError(f"GraphQL errors: {', '.join(error_messages)}")
+            error_msg = f"GraphQL errors: {', '.join(error_messages)}"
+            raise GraphQLError(error_msg)
 
         return data
 
     async def fetch_project_items(
-        self, project_id: str, first: int = 100
+        self, project_id: str, first: int = 100,
     ) -> list[dict[str, Any]]:
         """Fetch all items from a GitHub Projects v2 board with pagination.
 
@@ -168,12 +168,13 @@ class GitHubGraphQL:
             }
 
             result = await self._execute_query(query, variables)
-            
+
             # Extract items
             project_node = result["data"]["node"]
             if not project_node:
-                raise GraphQLError(f"Project not found: {project_id}")
-            
+                error_msg = f"Project not found: {project_id}"
+                raise GraphQLError(error_msg)
+
             items_data = project_node["items"]
             items.extend(items_data["nodes"])
 
@@ -240,15 +241,16 @@ class GitHubGraphQL:
 
         variables = {"projectId": project_id}
         result = await self._execute_query(query, variables)
-        
+
         project = result["data"]["node"]
         if not project:
-            raise GraphQLError(f"Project not found: {project_id}")
-        
+            error_msg = f"Project not found: {project_id}"
+            raise GraphQLError(error_msg)
+
         return project
 
     async def get_custom_field_value(
-        self, item_id: str, field_name: str
+        self, item_id: str, field_name: str,
     ) -> str | None:
         """Retrieve a custom field value from a project item.
 
@@ -291,21 +293,22 @@ class GitHubGraphQL:
 
         variables = {"itemId": item_id, "fieldName": field_name}
         result = await self._execute_query(query, variables)
-        
+
         item = result["data"]["node"]
         if not item:
-            raise GraphQLError(f"Item not found: {item_id}")
-        
+            error_msg = f"Item not found: {item_id}"
+            raise GraphQLError(error_msg)
+
         field_value = item.get("fieldValueByName")
         if not field_value:
             return None
-        
+
         # Extract value based on field type
         if "name" in field_value:
             return field_value["name"]
-        elif "text" in field_value:
+        if "text" in field_value:
             return field_value["text"]
-        
+
         return None
 
     async def update_project_item_status(
@@ -362,7 +365,7 @@ class GitHubGraphQL:
         return True
 
     async def add_labels_to_item(
-        self, item_id: str, label_ids: list[str]
+        self, item_id: str, label_ids: list[str],
     ) -> bool:
         """Add labels to a project item (issue/PR).
 
@@ -400,7 +403,7 @@ class GitHubGraphQL:
         return True
 
     async def assign_users_to_item(
-        self, item_id: str, assignee_ids: list[str]
+        self, item_id: str, assignee_ids: list[str],
     ) -> bool:
         """Assign users to a project item (issue/PR).
 
@@ -445,7 +448,6 @@ class GitHubGraphQL:
         """Enter async context manager."""
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+    async def __aexit__(self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: types.TracebackType | None) -> None:
         """Exit async context manager and cleanup."""
         await self.close()
-

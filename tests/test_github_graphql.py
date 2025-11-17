@@ -30,7 +30,7 @@ class TestInitialization:
     def test_init_with_valid_token(self, mock_httpx_client):
         """Test initialization with valid token."""
         graphql = GitHubGraphQL(token="test_token")
-        
+
         assert graphql.token == "test_token"
         assert graphql.base_url == "https://api.github.com/graphql"
 
@@ -38,11 +38,11 @@ class TestInitialization:
         """Test that correct headers are set on initialization."""
         with patch("src.github.graphql_api.httpx.AsyncClient") as mock_client:
             graphql = GitHubGraphQL(token="test_token_123")
-            
+
             # Verify AsyncClient was called with correct headers
             mock_client.assert_called_once()
             call_kwargs = mock_client.call_args[1]
-            
+
             assert "headers" in call_kwargs
             assert call_kwargs["headers"]["Authorization"] == "Bearer test_token_123"
             assert call_kwargs["headers"]["Content-Type"] == "application/json"
@@ -74,18 +74,18 @@ class TestFetchProjectItems:
                                         {
                                             "field": {"name": "Status"},
                                             "name": "In Progress",
-                                        }
-                                    ]
+                                        },
+                                    ],
                                 },
-                            }
+                            },
                         ],
                         "pageInfo": {
                             "hasNextPage": False,
                             "endCursor": None,
                         },
-                    }
-                }
-            }
+                    },
+                },
+            },
         }
         mock_httpx_client.post.return_value = mock_response
 
@@ -96,13 +96,13 @@ class TestFetchProjectItems:
         assert len(result) == 1
         assert result[0]["id"] == "PVTI_item1"
         assert result[0]["content"]["title"] == "Test Issue"
-        
+
         # Verify the GraphQL query was called
         mock_httpx_client.post.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_fetch_project_items_with_pagination(
-        self, github_graphql, mock_httpx_client
+        self, github_graphql, mock_httpx_client,
     ):
         """Test fetching project items with pagination."""
         # First page response
@@ -115,11 +115,11 @@ class TestFetchProjectItems:
                             "hasNextPage": True,
                             "endCursor": "cursor123",
                         },
-                    }
-                }
-            }
+                    },
+                },
+            },
         }
-        
+
         # Second page response
         second_page = {
             "data": {
@@ -130,20 +130,20 @@ class TestFetchProjectItems:
                             "hasNextPage": False,
                             "endCursor": None,
                         },
-                    }
-                }
-            }
+                    },
+                },
+            },
         }
 
         # Setup mock responses
         mock_response1 = MagicMock()
         mock_response1.status_code = 200
         mock_response1.json.return_value = first_page
-        
+
         mock_response2 = MagicMock()
         mock_response2.status_code = 200
         mock_response2.json.return_value = second_page
-        
+
         mock_httpx_client.post.side_effect = [mock_response1, mock_response2]
 
         # Execute
@@ -157,7 +157,7 @@ class TestFetchProjectItems:
 
     @pytest.mark.asyncio
     async def test_fetch_project_items_with_errors(
-        self, github_graphql, mock_httpx_client
+        self, github_graphql, mock_httpx_client,
     ):
         """Test handling GraphQL errors."""
         # Mock error response
@@ -165,15 +165,15 @@ class TestFetchProjectItems:
         mock_response.status_code = 200
         mock_response.json.return_value = {
             "errors": [
-                {"message": "Resource not found", "type": "NOT_FOUND"}
-            ]
+                {"message": "Resource not found", "type": "NOT_FOUND"},
+            ],
         }
         mock_httpx_client.post.return_value = mock_response
 
         # Execute and verify exception
         with pytest.raises(GraphQLError) as exc_info:
             await github_graphql.fetch_project_items(project_id="invalid_id")
-        
+
         assert "Resource not found" in str(exc_info.value)
 
 
@@ -182,7 +182,7 @@ class TestFetchProjectDetails:
 
     @pytest.mark.asyncio
     async def test_fetch_project_details_success(
-        self, github_graphql, mock_httpx_client
+        self, github_graphql, mock_httpx_client,
     ):
         """Test successfully fetching project details."""
         mock_response = MagicMock()
@@ -205,10 +205,10 @@ class TestFetchProjectDetails:
                                 "name": "Priority",
                                 "dataType": "SINGLE_SELECT",
                             },
-                        ]
+                        ],
                     },
-                }
-            }
+                },
+            },
         }
         mock_httpx_client.post.return_value = mock_response
 
@@ -227,7 +227,7 @@ class TestGetCustomFieldValue:
 
     @pytest.mark.asyncio
     async def test_get_custom_field_value_success(
-        self, github_graphql, mock_httpx_client
+        self, github_graphql, mock_httpx_client,
     ):
         """Test successfully getting a custom field value."""
         mock_response = MagicMock()
@@ -238,15 +238,15 @@ class TestGetCustomFieldValue:
                     "fieldValueByName": {
                         "name": "In Progress",
                         "field": {"name": "Status"},
-                    }
-                }
-            }
+                    },
+                },
+            },
         }
         mock_httpx_client.post.return_value = mock_response
 
         # Execute
         result = await github_graphql.get_custom_field_value(
-            item_id="PVTI_123", field_name="Status"
+            item_id="PVTI_123", field_name="Status",
         )
 
         # Verify
@@ -254,7 +254,7 @@ class TestGetCustomFieldValue:
 
     @pytest.mark.asyncio
     async def test_get_custom_field_value_not_found(
-        self, github_graphql, mock_httpx_client
+        self, github_graphql, mock_httpx_client,
     ):
         """Test handling when field value is not found."""
         mock_response = MagicMock()
@@ -262,15 +262,15 @@ class TestGetCustomFieldValue:
         mock_response.json.return_value = {
             "data": {
                 "node": {
-                    "fieldValueByName": None
-                }
-            }
+                    "fieldValueByName": None,
+                },
+            },
         }
         mock_httpx_client.post.return_value = mock_response
 
         # Execute
         result = await github_graphql.get_custom_field_value(
-            item_id="PVTI_123", field_name="NonExistent"
+            item_id="PVTI_123", field_name="NonExistent",
         )
 
         # Verify
@@ -282,7 +282,7 @@ class TestUpdateProjectItemStatus:
 
     @pytest.mark.asyncio
     async def test_update_project_item_status_success(
-        self, github_graphql, mock_httpx_client
+        self, github_graphql, mock_httpx_client,
     ):
         """Test successfully updating project item status."""
         mock_response = MagicMock()
@@ -293,9 +293,9 @@ class TestUpdateProjectItemStatus:
                     "projectV2Item": {
                         "id": "PVTI_123",
                         "fieldValueByName": {"name": "Done"},
-                    }
-                }
-            }
+                    },
+                },
+            },
         }
         mock_httpx_client.post.return_value = mock_response
 
@@ -313,13 +313,13 @@ class TestUpdateProjectItemStatus:
 
     @pytest.mark.asyncio
     async def test_update_project_item_status_failure(
-        self, github_graphql, mock_httpx_client
+        self, github_graphql, mock_httpx_client,
     ):
         """Test handling update failure."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "errors": [{"message": "Field not found"}]
+            "errors": [{"message": "Field not found"}],
         }
         mock_httpx_client.post.return_value = mock_response
 
@@ -349,11 +349,11 @@ class TestUpdateItemMetadata:
                             "nodes": [
                                 {"name": "bug"},
                                 {"name": "enhancement"},
-                            ]
-                        }
-                    }
-                }
-            }
+                            ],
+                        },
+                    },
+                },
+            },
         }
         mock_httpx_client.post.return_value = mock_response
 
@@ -376,11 +376,11 @@ class TestUpdateItemMetadata:
                 "addAssigneesToAssignable": {
                     "assignable": {
                         "assignees": {
-                            "nodes": [{"login": "user1"}]
-                        }
-                    }
-                }
-            }
+                            "nodes": [{"login": "user1"}],
+                        },
+                    },
+                },
+            },
         }
         mock_httpx_client.post.return_value = mock_response
 
@@ -412,7 +412,7 @@ class TestErrorHandling:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.side_effect = json.JSONDecodeError(
-            "Invalid JSON", "", 0
+            "Invalid JSON", "", 0,
         )
         mock_httpx_client.post.return_value = mock_response
 
@@ -428,7 +428,7 @@ class TestCleanup:
     async def test_close_client(self, github_graphql, mock_httpx_client):
         """Test closing the httpx client."""
         await github_graphql.close()
-        
+
         mock_httpx_client.aclose.assert_called_once()
 
     @pytest.mark.asyncio
@@ -436,5 +436,5 @@ class TestCleanup:
         """Test using GitHubGraphQL as async context manager."""
         async with GitHubGraphQL(token="test") as graphql:
             assert graphql.token == "test"
-        
+
         mock_httpx_client.aclose.assert_called_once()
