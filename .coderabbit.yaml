@@ -48,6 +48,22 @@ reviews:
     critical: "coderabbit:critical"
   link_issues: true
   concise: false
+  tools:
+    ruff:
+      enabled: true
+    markdownlint:
+      enabled: true
+    yamllint:
+      enabled: true
+    shellcheck:
+      enabled: true
+    github-checks:
+      enabled: true
+      timeout_ms: 90000
+    languagetool:
+      enabled: true
+      enabled_only: true
+      level: picky
 
 chat:
   enabled: true
@@ -60,22 +76,4 @@ knowledge_base:
     scope: auto
   jira:
     usage: auto
-
-tools:
-  ruff:
-    enabled: true
-  markdownlint:
-    enabled: true
-  yamllint:
-    enabled: true
-  shellcheck:
-    enabled: true
-  github-checks:
-    enabled: true
-    timeout_ms: 90000
-  languagetool:
-    enabled: true
-    enabled_only: true
-    level: picky
-
-abort_on_close: true
+    
