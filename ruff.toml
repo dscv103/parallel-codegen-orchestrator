@@ -1,0 +1,117 @@
+# Ruff configuration for Parallel Codegen Orchestrator
+# This configuration matches the CodeRabbit .coderabbit.yaml settings
+
+# Target Python 3.13+
+target-version = "py313"
+
+# Line length
+line-length = 100
+
+# Enable all rule categories from CodeRabbit config
+select = [
+    "E",     # pycodestyle errors
+    "F",     # pyflakes
+    "W",     # pycodestyle warnings
+    "C90",   # mccabe complexity
+    "I",     # isort
+    "N",     # pep8-naming
+    "D",     # pydocstyle
+    "UP",    # pyupgrade
+    "YTT",   # flake8-2020
+    "ANN",   # flake8-annotations
+    "ASYNC", # flake8-async
+    "S",     # flake8-bandit (security)
+    "BLE",   # flake8-blind-except
+    "B",     # flake8-bugbear
+    "A",     # flake8-builtins
+    "COM",   # flake8-commas
+    "C4",    # flake8-comprehensions
+    "DTZ",   # flake8-datetimez
+    "T10",   # flake8-debugger
+    "EM",    # flake8-errmsg
+    "ISC",   # flake8-implicit-str-concat
+    "ICN",   # flake8-import-conventions
+    "G",     # flake8-logging-format
+    "PIE",   # flake8-pie
+    "T20",   # flake8-print
+    "PYI",   # flake8-pyi
+    "PT",    # flake8-pytest-style
+    "Q",     # flake8-quotes
+    "RSE",   # flake8-raise
+    "RET",   # flake8-return
+    "SLF",   # flake8-self
+    "SLOT",  # flake8-slots
+    "SIM",   # flake8-simplify
+    "TID",   # flake8-tidy-imports
+    "TCH",   # flake8-type-checking
+    "ARG",   # flake8-unused-arguments
+    "PTH",   # flake8-use-pathlib
+    "ERA",   # eradicate
+    "PD",    # pandas-vet
+    "PGH",   # pygrep-hooks
+    "PL",    # pylint
+    "TRY",   # tryceratops
+    "FLY",   # flynt
+    "NPY",   # numpy-specific rules
+    "PERF",  # performance anti-patterns
+    "RUF",   # ruff-specific rules
+]
+
+# Ignore specific rules (matches CodeRabbit config)
+ignore = [
+    "E501",  # line-too-long (handled by formatter)
+    "D203",  # one-blank-line-before-class (conflicts with D211)
+    "D213",  # multi-line-summary-second-line (conflicts with D212)
+]
+
+# Exclude patterns
+exclude = [
+    ".git",
+    ".venv",
+    "venv",
+    "__pycache__",
+    "*.pyc",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+    "build",
+    "dist",
+    "*.egg-info",
+]
+
+[per-file-ignores]
+# Tests can have additional flexibility
+"tests/**/*.py" = ["S101", "ANN", "D"]  # Allow assert, skip annotations and docstrings
+"**/test_*.py" = ["S101", "ANN", "D"]
+# __init__.py files don't need docstrings
+"**/__init__.py" = ["D104"]
+
+[mccabe]
+# Maximum cyclomatic complexity
+max-complexity = 15
+
+[pydocstyle]
+# Use Google-style docstrings
+convention = "google"
+
+[isort]
+# Profile matching Black formatter
+profile = "black"
+line-length = 100
+known-first-party = ["src"]
+
+[flake8-annotations]
+# Allow dynamically typed expressions
+allow-star-arg-any = true
+suppress-none-returning = true
+
+[flake8-quotes]
+# Use double quotes
+inline-quotes = "double"
+docstring-quotes = "double"
+
+[pylint]
+# Maximum number of arguments
+max-args = 8
+# Maximum number of attributes
+max-attributes = 12
