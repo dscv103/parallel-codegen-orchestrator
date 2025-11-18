@@ -2,7 +2,7 @@
 
 import csv
 import json
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -20,7 +20,7 @@ def result_manager():
 @pytest.fixture
 def sample_task_result():
     """Create a sample successful task result."""
-    start = datetime.now()
+    start = datetime.now(UTC)
     end = start + timedelta(seconds=10)
     return TaskResult(
         task_id="task-1",
@@ -37,7 +37,7 @@ def sample_task_result():
 @pytest.fixture
 def sample_failed_result():
     """Create a sample failed task result."""
-    start = datetime.now()
+    start = datetime.now(UTC)
     end = start + timedelta(seconds=5)
     return TaskResult(
         task_id="task-2",
@@ -56,7 +56,7 @@ class TestTaskResult:
 
     def test_task_result_creation(self):
         """Test creating a TaskResult instance."""
-        start = datetime.now()
+        start = datetime.now(UTC)
         end = start + timedelta(seconds=15)
 
         result = TaskResult(
@@ -72,14 +72,14 @@ class TestTaskResult:
 
         assert result.task_id == "test-1"
         assert result.status == "completed"
-        assert result.duration_seconds == 15.0
-        assert result.agent_id == 3
+        assert result.duration_seconds == 15.0  # noqa: PLR2004
+        assert result.agent_id == 3  # noqa: PLR2004
         assert result.result == {"data": "test"}
         assert result.error is None
 
     def test_task_result_with_error(self):
         """Test creating a TaskResult with error."""
-        start = datetime.now()
+        start = datetime.now(UTC)
         end = start + timedelta(seconds=2)
 
         result = TaskResult(
@@ -130,7 +130,7 @@ class TestResultManager:
         result_manager.add_result(sample_task_result)
         result_manager.add_result(sample_failed_result)
 
-        assert len(result_manager.results) == 2
+        assert len(result_manager.results) == 2  # noqa: PLR2004
         assert result_manager.success_count == 1
         assert result_manager.failure_count == 1
 
@@ -154,7 +154,7 @@ class TestResultManager:
         result_manager.add_result(sample_failed_result)
 
         all_results = result_manager.get_all_results()
-        assert len(all_results) == 2
+        assert len(all_results) == 2  # noqa: PLR2004
         assert sample_task_result in all_results
         assert sample_failed_result in all_results
 
@@ -202,7 +202,7 @@ class TestResultManager:
         assert summary["average_duration_seconds"] == 0.0
 
     def test_get_summary_with_results(
-        self, result_manager, sample_task_result, sample_failed_result
+        self, result_manager, sample_task_result, sample_failed_result,
     ):
         """Test summary generation with results."""
         result_manager.add_result(sample_task_result)
@@ -210,11 +210,11 @@ class TestResultManager:
 
         summary = result_manager.get_summary()
 
-        assert summary["total_tasks"] == 2
+        assert summary["total_tasks"] == 2  # noqa: PLR2004
         assert summary["successful"] == 1
         assert summary["failed"] == 1
-        assert summary["total_duration_seconds"] == 15.0
-        assert summary["average_duration_seconds"] == 7.5
+        assert summary["total_duration_seconds"] == 15.0  # noqa: PLR2004
+        assert summary["average_duration_seconds"] == 7.5  # noqa: PLR2004
 
     def test_export_json(self, result_manager, sample_task_result):
         """Test JSON export functionality."""
@@ -260,7 +260,7 @@ class TestResultManager:
                 reader = csv.DictReader(f)
                 rows = list(reader)
 
-            assert len(rows) == 2
+            assert len(rows) == 2  # noqa: PLR2004
             assert rows[0]["task_id"] == "task-1"
             assert rows[0]["status"] == "completed"
             assert rows[1]["task_id"] == "task-2"
@@ -280,7 +280,7 @@ class TestResultManager:
         result_manager.add_result(sample_task_result)
         result_manager.add_result(sample_failed_result)
 
-        assert len(result_manager.results) == 2
+        assert len(result_manager.results) == 2  # noqa: PLR2004
         assert result_manager.success_count == 1
         assert result_manager.failure_count == 1
 
@@ -303,12 +303,10 @@ class TestResultManager:
     def test_get_statistics_with_results(
         self,
         result_manager,
-        sample_task_result,
-        sample_failed_result,
     ):
         """Test comprehensive statistics with multiple results."""
         # Add multiple results with different durations and agents
-        start = datetime.now()
+        start = datetime.now(UTC)
 
         results = [
             TaskResult("task-1", "completed", start, start + timedelta(seconds=10), 10.0, 1),
@@ -321,19 +319,19 @@ class TestResultManager:
 
         stats = result_manager.get_statistics()
 
-        assert stats["total_tasks"] == 3
-        assert stats["successful"] == 2
+        assert stats["total_tasks"] == 3  # noqa: PLR2004
+        assert stats["successful"] == 2  # noqa: PLR2004
         assert stats["failed"] == 1
-        assert stats["total_duration_seconds"] == 35.0
+        assert stats["total_duration_seconds"] == 35.0  # noqa: PLR2004
         assert stats["average_duration_seconds"] == pytest.approx(11.67, rel=0.01)
-        assert stats["min_duration_seconds"] == 5.0
-        assert stats["max_duration_seconds"] == 20.0
+        assert stats["min_duration_seconds"] == 5.0  # noqa: PLR2004
+        assert stats["max_duration_seconds"] == 20.0  # noqa: PLR2004
         assert stats["agent_utilization"] == {1: 2, 2: 1}
         assert stats["status_breakdown"] == {"completed": 2, "failed": 1}
 
     def test_concurrent_updates(self, result_manager):
         """Test handling multiple status updates in sequence."""
-        start = datetime.now()
+        start = datetime.now(UTC)
 
         # Add 5 completed and 3 failed tasks
         for i in range(5):
@@ -359,11 +357,11 @@ class TestResultManager:
             )
             result_manager.add_result(result)
 
-        assert len(result_manager.results) == 8
-        assert result_manager.success_count == 5
-        assert result_manager.failure_count == 3
+        assert len(result_manager.results) == 8  # noqa: PLR2004
+        assert result_manager.success_count == 5  # noqa: PLR2004
+        assert result_manager.failure_count == 3  # noqa: PLR2004
 
         summary = result_manager.get_summary()
-        assert summary["total_tasks"] == 8
-        assert summary["successful"] == 5
-        assert summary["failed"] == 3
+        assert summary["total_tasks"] == 8  # noqa: PLR2004
+        assert summary["successful"] == 5  # noqa: PLR2004
+        assert summary["failed"] == 3  # noqa: PLR2004

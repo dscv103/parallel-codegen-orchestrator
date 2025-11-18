@@ -4,9 +4,8 @@ Tests cover the main orchestration loop, dependency-aware execution,
 error handling, and early termination features.
 """
 
-import asyncio
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, Mock, call
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
@@ -114,7 +113,7 @@ class TestOrchestrate:
         executor.active_tasks = set()
 
         # Mock execute_task to return successful results
-        async def mock_execute(task_id, task_data):
+        async def mock_execute(task_id, _task_data):
             return TaskResult(
                 task_id=task_id,
                 status=TaskStatus.COMPLETED,
@@ -142,9 +141,7 @@ class TestOrchestrate:
         assert executor.execute_task.call_count == 3  # noqa: PLR2004
 
         # Verify all tasks were executed
-        executed_task_ids = {
-            call.args[0] for call in executor.execute_task.call_args_list
-        }
+        executed_task_ids = {call_obj.args[0] for call_obj in executor.execute_task.call_args_list}
         assert executed_task_ids == {"task-1", "task-2", "task-3"}
 
     @pytest.mark.asyncio
@@ -167,7 +164,7 @@ class TestOrchestrate:
         executor.active_tasks = set()
 
         # Make task-2 fail but task-3 should still execute
-        async def mock_execute_with_failure(task_id, task_data):
+        async def mock_execute_with_failure(task_id, _task_data):
             if task_id == "task-2":
                 return TaskResult(
                     task_id=task_id,
@@ -234,9 +231,10 @@ class TestOrchestrate:
         executor.active_tasks = set()
 
         # Make task-2 raise an exception
-        async def mock_execute_with_exception(task_id, task_data):
+        async def mock_execute_with_exception(task_id, _task_data):
             if task_id == "task-2":
-                raise RuntimeError("Simulated task failure")
+                error_msg = "Simulated task failure"
+                raise RuntimeError(error_msg)
 
             return TaskResult(
                 task_id=task_id,
@@ -295,7 +293,7 @@ class TestOrchestrateWithEarlyTermination:
         executor.active_tasks = set()
 
         # Make task-1 fail (which is critical)
-        async def mock_execute_with_failure(task_id, task_data):
+        async def mock_execute_with_failure(task_id, _task_data):
             if task_id == "task-1":
                 return TaskResult(
                     task_id=task_id,
@@ -358,9 +356,10 @@ class TestOrchestrateWithEarlyTermination:
         executor.active_tasks = set()
 
         # Make task-1 raise an exception (task-1 is critical)
-        async def mock_execute_with_exception(task_id, task_data):
+        async def mock_execute_with_exception(task_id, _task_data):
             if task_id == "task-1":
-                raise RuntimeError("Critical task exception")
+                error_msg = "Critical task exception"
+                raise RuntimeError(error_msg)
 
             return TaskResult(
                 task_id=task_id,
@@ -453,7 +452,7 @@ class TestIntegrationOrchestrator:
         )
 
         # Mock the execute_task to return immediately
-        async def mock_execute(task_id, task_data):
+        async def mock_execute(task_id, _task_data):
             return TaskResult(
                 task_id=task_id,
                 status=TaskStatus.COMPLETED,
@@ -481,9 +480,7 @@ class TestIntegrationOrchestrator:
         assert all(r.status == TaskStatus.COMPLETED for r in results)
 
         # Verify execution order - task-1 should execute before task-2
-        executed_order = [
-            call.args[0] for call in executor.execute_task.call_args_list
-        ]
+        executed_order = [call_obj.args[0] for call_obj in executor.execute_task.call_args_list]
 
         # task-1 should be executed first (no dependencies)
         assert executed_order[0] == "task-1"

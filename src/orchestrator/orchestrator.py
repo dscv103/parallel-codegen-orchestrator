@@ -204,7 +204,6 @@ class TaskOrchestrator:
                             start_time=None,
                             end_time=None,
                             duration_seconds=0.0,
-                            
                             result=None,
                             error=str(task_result),
                         )
@@ -255,7 +254,7 @@ class TaskOrchestrator:
                 iterations=iteration,
             )
 
-            return results
+            return results  # noqa: TRY300
 
         except KeyboardInterrupt:
             logger.warning(
@@ -272,9 +271,8 @@ class TaskOrchestrator:
                 completed_tasks=len(results),
                 total_tasks=len(tasks),
             )
-            raise OrchestrationError(
-                f"Critical orchestration failure: {e}",
-            ) from e
+            error_msg = f"Critical orchestration failure: {e}"
+            raise OrchestrationError(error_msg) from e
 
     async def orchestrate_with_early_termination(
         self,
@@ -353,8 +351,7 @@ class TaskOrchestrator:
                     # Check for critical task failure
                     is_critical = task_id in critical_task_ids
                     is_failed = isinstance(task_result, Exception) or (
-                        hasattr(task_result, "status")
-                        and task_result.status == TaskStatus.FAILED
+                        hasattr(task_result, "status") and task_result.status == TaskStatus.FAILED
                     )
 
                     if is_critical and is_failed:
@@ -368,10 +365,8 @@ class TaskOrchestrator:
                             task_id=task_id,
                             error=error_msg,
                         )
-                        raise OrchestrationError(
-                            f"Critical task '{task_id}' failed: {error_msg}",
-                            task_id=task_id,
-                        )
+                        critical_error_msg = f"Critical task '{task_id}' failed: {error_msg}"
+                        raise OrchestrationError(critical_error_msg, task_id=task_id)  # noqa: TRY301
 
                     # Process result normally
                     if isinstance(task_result, Exception):
@@ -381,7 +376,6 @@ class TaskOrchestrator:
                             start_time=None,
                             end_time=None,
                             duration_seconds=0.0,
-                            
                             result=None,
                             error=str(task_result),
                         )
@@ -400,7 +394,7 @@ class TaskOrchestrator:
                 completed_tasks=len(results),
             )
 
-            return results
+            return results  # noqa: TRY300
 
         except OrchestrationError:
             # Re-raise orchestration errors
@@ -411,9 +405,8 @@ class TaskOrchestrator:
                 "orchestration_with_early_termination_failed",
                 error=str(e),
             )
-            raise OrchestrationError(
-                f"Critical failure during orchestration: {e}",
-            ) from e
+            critical_failure_msg = f"Critical failure during orchestration: {e}"
+            raise OrchestrationError(critical_failure_msg) from e
 
     def get_stats(self) -> dict[str, Any]:
         """Get orchestration statistics.
