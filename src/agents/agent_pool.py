@@ -91,7 +91,9 @@ class AgentPool:
             ValueError: If max_agents is not in valid range [1, 10]
         """
         if not MIN_AGENTS <= max_agents <= MAX_AGENTS_LIMIT:
-            msg = f"max_agents must be between {MIN_AGENTS} and {MAX_AGENTS_LIMIT}, got {max_agents}"
+            msg = (
+                f"max_agents must be between {MIN_AGENTS} and {MAX_AGENTS_LIMIT}, got {max_agents}"
+            )
             raise ValueError(msg)
 
         self.org_id = org_id
@@ -269,9 +271,7 @@ class AgentPool:
         stats = {
             "idle": sum(1 for agent in self.agents if agent.status == AgentStatus.IDLE),
             "busy": sum(1 for agent in self.agents if agent.status == AgentStatus.BUSY),
-            "failed": sum(
-                1 for agent in self.agents if agent.status == AgentStatus.FAILED
-            ),
+            "failed": sum(1 for agent in self.agents if agent.status == AgentStatus.FAILED),
         }
 
         logger.debug("pool_stats_retrieved", **stats)

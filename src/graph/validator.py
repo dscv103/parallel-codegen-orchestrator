@@ -357,7 +357,6 @@ class GraphValidator:
         """
         # Normalize format parameter to accept case-insensitive variants
         output_format = output_format.lower().strip()
-        
         if output_format == "mermaid":
             return self._generate_mermaid(graph.graph)
         if output_format == "dot":
@@ -405,10 +404,11 @@ class GraphValidator:
         Returns:
             Graphviz DOT syntax
         """
+
         def escape_dot_string(s: str) -> str:
             """Escape double quotes for DOT format."""
             return s.replace('"', '\\"')
-        
+
         lines = ["digraph DependencyGraph {"]
         lines.append("    rankdir=LR;")
         lines.append("    node [shape=box, style=rounded];")
@@ -417,17 +417,13 @@ class GraphValidator:
             lines.append('    Empty [label="Empty Graph"];')
         else:
             # Add nodes (escape quotes in task IDs)
-            lines.extend(
-                f'    "{escape_dot_string(task_id)}";'
-                for task_id in sorted(graph.keys())
-            )
+            lines.extend(f'    "{escape_dot_string(task_id)}";' for task_id in sorted(graph.keys()))
 
             # Add edges (escape quotes in task IDs)
             for task_id, deps in sorted(graph.items()):
                 escaped_task = escape_dot_string(task_id)
                 lines.extend(
-                    f'    "{escape_dot_string(dep)}" -> "{escaped_task}";'
-                    for dep in sorted(deps)
+                    f'    "{escape_dot_string(dep)}" -> "{escaped_task}";' for dep in sorted(deps)
                 )
 
         lines.append("}")

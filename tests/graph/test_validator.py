@@ -193,7 +193,7 @@ class TestCycleDetection:
         # task-1 should NOT appear in the cycle (it's acyclic)
         assert "task-1" not in cycle
         # Cycle should have length 3: [cycle-a, cycle-b, cycle-a] or similar
-        assert len(cycle) == 3
+        assert len(cycle) == SIMPLE_CYCLE_LENGTH
 
     def test_multiple_cycles(self):
         """Test detection of multiple independent cycles."""
