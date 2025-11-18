@@ -35,6 +35,12 @@ class DependencyGraph:
     dependencies, providing methods to add tasks, validate the graph structure,
     and retrieve tasks that are ready for execution.
 
+    Thread-safety:
+        This class is NOT thread-safe. The underlying TopologicalSorter and
+        internal state should only be accessed from a single thread. If
+        concurrent access is required, protect all method calls with external
+        synchronization (e.g., threading.Lock).
+
     Example:
         >>> graph = DependencyGraph()
         >>> graph.add_task("task-1", set())  # No dependencies
@@ -261,4 +267,3 @@ class DependencyGraph:
         logger.debug("graph_stats_retrieved", **stats)
 
         return stats
-
