@@ -167,6 +167,7 @@ class CodegenExecutor:
         """
         task_id = task_data.get("task_id", "unknown")
         last_error = None
+        overall_start_time = datetime.now()
 
         for attempt in range(self.retry_attempts):
             try:
@@ -186,6 +187,8 @@ class CodegenExecutor:
                         task_id=task_id,
                         attempt=attempt + 1,
                     )
+                    # Track actual retry count
+                    result.retry_count = attempt
                     return result
 
                 # If failed but not a transient error, don't retry
@@ -196,6 +199,8 @@ class CodegenExecutor:
                             task_id=task_id,
                             error=result.error,
                         )
+                        # Track actual retry count even for permanent failures
+                        result.retry_count = attempt
                         return result
 
                     last_error = result.error
@@ -234,13 +239,14 @@ class CodegenExecutor:
             last_error=last_error,
         )
 
-        # Return a failed result with the last error
+        # Return a failed result with the last error and accurate timing
+        overall_end_time = datetime.now()
         return TaskResult(
             task_id=task_id,
             status=TaskStatus.FAILED,
-            start_time=datetime.now(),
-            end_time=datetime.now(),
-            duration_seconds=0,
+            start_time=overall_start_time,
+            end_time=overall_end_time,
+            duration_seconds=(overall_end_time - overall_start_time).total_seconds(),
             error=f"All retry attempts exhausted. Last error: {last_error}",
             retry_count=self.retry_attempts,
         )
@@ -412,4 +418,3 @@ class CodegenExecutor:
             logger.debug("transient_error_detected", error=error)
 
         return is_transient
-
