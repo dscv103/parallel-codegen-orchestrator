@@ -238,8 +238,11 @@ class TestDependencyParser:
         """
         labels = ["depends:issue-50", "enhancement", "priority:high"]
         valid_issues = {
-            "issue-10", "issue-20", "issue-30",
-            "issue-50", "issue-100",
+            "issue-10",
+            "issue-20",
+            "issue-30",
+            "issue-50",
+            "issue-100",
         }
 
         result = parser.parse_and_validate(body, labels, valid_issues)
@@ -255,4 +258,3 @@ class TestDependencyParser:
 
         # All should be valid
         assert result["invalid"] == set()
-

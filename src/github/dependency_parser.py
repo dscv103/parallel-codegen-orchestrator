@@ -26,14 +26,13 @@ class DependencyParser:
         r"Requires #(\d+)",
         r"depends on #(\d+)",  # lowercase variant
         r"blocked by #(\d+)",  # lowercase variant
-        r"requires #(\d+)",    # lowercase variant
+        r"requires #(\d+)",  # lowercase variant
     ]
 
     def __init__(self):
         """Initialize the dependency parser."""
         self.compiled_patterns = [
-            re.compile(pattern, re.IGNORECASE)
-            for pattern in self.DEPENDENCY_PATTERNS
+            re.compile(pattern, re.IGNORECASE) for pattern in self.DEPENDENCY_PATTERNS
         ]
 
     def parse_dependencies(

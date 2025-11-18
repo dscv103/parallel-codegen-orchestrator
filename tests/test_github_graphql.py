@@ -801,7 +801,8 @@ class TestFetchProjectItemsEdgeCases:
                     "node": {
                         "items": {
                             "nodes": [
-                                {"id": f"PVTI_{i * TEST_ITEMS_PER_PAGE + j}", "content": {}} for j in range(TEST_ITEMS_PER_PAGE)
+                                {"id": f"PVTI_{i * TEST_ITEMS_PER_PAGE + j}", "content": {}}
+                                for j in range(TEST_ITEMS_PER_PAGE)
                             ],
                             "pageInfo": {
                                 "hasNextPage": i < TEST_LAST_PAGE_INDEX,
