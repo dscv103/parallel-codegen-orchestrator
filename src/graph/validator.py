@@ -232,6 +232,64 @@ class GraphValidator:
 
         return missing
 
+    def _build_reverse_dependency_map(self, graph: dict[str, set[str]]) -> dict[str, set[str]]:
+        """Build a reverse dependency map showing which tasks depend on each task.
+        
+        Args:
+            graph: Dictionary mapping task IDs to their dependencies
+            
+        Returns:
+            Dictionary mapping task IDs to the set of tasks that depend on them
+        """
+        reverse_deps: dict[str, set[str]] = {}
+        for task, deps in graph.items():
+            if task not in reverse_deps:
+                reverse_deps[task] = set()
+            for dep in deps:
+                if dep not in reverse_deps:
+                    reverse_deps[dep] = set()
+                reverse_deps[dep].add(task)
+        return reverse_deps
+
+    def _find_end_nodes(self, graph: dict[str, set[str]], reverse_deps: dict[str, set[str]]) -> set[str]:
+        """Find end nodes (tasks that no other tasks depend on).
+        
+        Args:
+            graph: Dictionary mapping task IDs to their dependencies
+            reverse_deps: Reverse dependency mapping
+            
+        Returns:
+            Set of task IDs that are end nodes
+        """
+        all_tasks = set(graph.keys())
+        return {task for task in all_tasks if not reverse_deps.get(task, set())}
+
+    def _find_reachable_tasks_from_end_nodes(self, graph: dict[str, set[str]], end_nodes: set[str]) -> set[str]:
+        """Find all tasks reachable from end nodes using BFS traversal.
+        
+        Args:
+            graph: Dictionary mapping task IDs to their dependencies
+            end_nodes: Set of end node task IDs
+            
+        Returns:
+            Set of task IDs reachable from end nodes
+        """
+        reachable = set()
+        queue = list(end_nodes)
+
+        while queue:
+            current = queue.pop(0)
+            if current in reachable:
+                continue
+
+            reachable.add(current)
+
+            # Add all tasks that this task depends on
+            new_deps = [dep for dep in graph.get(current, set()) if dep not in reachable]
+            queue.extend(new_deps)
+
+        return reachable
+
     def _check_orphaned_tasks(self, graph: dict[str, set[str]]) -> set[str]:
         """Check for tasks that have no path to completion.
 
@@ -249,42 +307,16 @@ class GraphValidator:
         if not graph:
             return set()
 
-        # Build reverse dependency map (who depends on whom)
-        reverse_deps: dict[str, set[str]] = {}
-        for task, deps in graph.items():
-            if task not in reverse_deps:
-                reverse_deps[task] = set()
-            for dep in deps:
-                if dep not in reverse_deps:
-                    reverse_deps[dep] = set()
-                reverse_deps[dep].add(task)
-
-        # Find end nodes (tasks that no one depends on)
-        all_tasks = set(graph.keys())
-        end_nodes = {task for task in all_tasks if not reverse_deps.get(task, set())}
+        reverse_deps = self._build_reverse_dependency_map(graph)
+        end_nodes = self._find_end_nodes(graph, reverse_deps)
 
         if not end_nodes:
             # If there are no end nodes, all tasks are part of cycles or isolated
             # This case is handled by cycle detection
             return set()
 
-        # BFS from end nodes backwards to find all reachable tasks
-        reachable = set()
-        queue = list(end_nodes)
-
-        while queue:
-            current = queue.pop(0)
-            if current in reachable:
-                continue
-
-            reachable.add(current)
-
-            # Add all tasks that this task depends on
-            new_deps = [dep for dep in graph.get(current, set()) if dep not in reachable]
-            queue.extend(new_deps)
-
-        # Orphaned tasks are those not reachable from end nodes
-        orphaned = all_tasks - reachable
+        reachable = self._find_reachable_tasks_from_end_nodes(graph, end_nodes)
+        orphaned = set(graph.keys()) - reachable
 
         if orphaned:
             logger.debug("orphaned_tasks_found", count=len(orphaned), tasks=list(orphaned))
