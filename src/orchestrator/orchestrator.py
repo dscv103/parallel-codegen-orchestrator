@@ -254,7 +254,7 @@ class TaskOrchestrator:
                 iterations=iteration,
             )
 
-            return results  # noqa: TRY300
+            return results
 
         except KeyboardInterrupt:
             logger.warning(
@@ -399,7 +399,7 @@ class TaskOrchestrator:
                 completed_tasks=len(results),
             )
 
-            return results  # noqa: TRY300
+            return results
 
         except OrchestrationError:
             # Re-raise orchestration errors

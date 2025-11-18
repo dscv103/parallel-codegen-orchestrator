@@ -72,8 +72,8 @@ class TestTaskResult:
 
         assert result.task_id == "test-1"
         assert result.status == "completed"
-        assert result.duration_seconds == 15.0  # noqa: PLR2004
-        assert result.agent_id == 3  # noqa: PLR2004
+        assert result.duration_seconds == 15.0
+        assert result.agent_id == 3
         assert result.result == {"data": "test"}
         assert result.error is None
 
@@ -130,7 +130,7 @@ class TestResultManager:
         result_manager.add_result(sample_task_result)
         result_manager.add_result(sample_failed_result)
 
-        assert len(result_manager.results) == 2  # noqa: PLR2004
+        assert len(result_manager.results) == 2
         assert result_manager.success_count == 1
         assert result_manager.failure_count == 1
 
@@ -154,7 +154,7 @@ class TestResultManager:
         result_manager.add_result(sample_failed_result)
 
         all_results = result_manager.get_all_results()
-        assert len(all_results) == 2  # noqa: PLR2004
+        assert len(all_results) == 2
         assert sample_task_result in all_results
         assert sample_failed_result in all_results
 
@@ -213,11 +213,11 @@ class TestResultManager:
 
         summary = result_manager.get_summary()
 
-        assert summary["total_tasks"] == 2  # noqa: PLR2004
+        assert summary["total_tasks"] == 2
         assert summary["successful"] == 1
         assert summary["failed"] == 1
-        assert summary["total_duration_seconds"] == 15.0  # noqa: PLR2004
-        assert summary["average_duration_seconds"] == 7.5  # noqa: PLR2004
+        assert summary["total_duration_seconds"] == 15.0
+        assert summary["average_duration_seconds"] == 7.5
 
     def test_export_json(self, result_manager, sample_task_result):
         """Test JSON export functionality."""
@@ -263,7 +263,7 @@ class TestResultManager:
                 reader = csv.DictReader(f)
                 rows = list(reader)
 
-            assert len(rows) == 2  # noqa: PLR2004
+            assert len(rows) == 2
             assert rows[0]["task_id"] == "task-1"
             assert rows[0]["status"] == "completed"
             assert rows[1]["task_id"] == "task-2"
@@ -283,7 +283,7 @@ class TestResultManager:
         result_manager.add_result(sample_task_result)
         result_manager.add_result(sample_failed_result)
 
-        assert len(result_manager.results) == 2  # noqa: PLR2004
+        assert len(result_manager.results) == 2
         assert result_manager.success_count == 1
         assert result_manager.failure_count == 1
 
@@ -319,13 +319,13 @@ class TestResultManager:
 
         stats = result_manager.get_statistics()
 
-        assert stats["total_tasks"] == 3  # noqa: PLR2004
-        assert stats["successful"] == 2  # noqa: PLR2004
+        assert stats["total_tasks"] == 3
+        assert stats["successful"] == 2
         assert stats["failed"] == 1
-        assert stats["total_duration_seconds"] == 35.0  # noqa: PLR2004
+        assert stats["total_duration_seconds"] == 35.0
         assert stats["average_duration_seconds"] == pytest.approx(11.67, rel=0.01)
-        assert stats["min_duration_seconds"] == 5.0  # noqa: PLR2004
-        assert stats["max_duration_seconds"] == 20.0  # noqa: PLR2004
+        assert stats["min_duration_seconds"] == 5.0
+        assert stats["max_duration_seconds"] == 20.0
         assert stats["agent_utilization"] == {1: 2, 2: 1}
         assert stats["status_breakdown"] == {"completed": 2, "failed": 1}
 
@@ -357,11 +357,11 @@ class TestResultManager:
             )
             result_manager.add_result(result)
 
-        assert len(result_manager.results) == 8  # noqa: PLR2004
-        assert result_manager.success_count == 5  # noqa: PLR2004
-        assert result_manager.failure_count == 3  # noqa: PLR2004
+        assert len(result_manager.results) == 8
+        assert result_manager.success_count == 5
+        assert result_manager.failure_count == 3
 
         summary = result_manager.get_summary()
-        assert summary["total_tasks"] == 8  # noqa: PLR2004
-        assert summary["successful"] == 5  # noqa: PLR2004
-        assert summary["failed"] == 3  # noqa: PLR2004
+        assert summary["total_tasks"] == 8
+        assert summary["successful"] == 5
+        assert summary["failed"] == 3
