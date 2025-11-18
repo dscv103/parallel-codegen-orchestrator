@@ -501,7 +501,7 @@ class TestExecuteQueryEdgeCases:
         query = "query($login: String!) { viewer(login: $login) { login } }"
         variables = {"login": "testuser"}
 
-        result = await github_graphql._execute_query(query, variables)
+        result = await github_graphql.execute_query(query, variables)
 
         # Verify variables were passed in the payload
         call_args = mock_httpx_client.post.call_args
@@ -521,7 +521,7 @@ class TestExecuteQueryEdgeCases:
         mock_httpx_client.post.return_value = mock_response
 
         query = "query { viewer { login } }"
-        result = await github_graphql._execute_query(query)
+        result = await github_graphql.execute_query(query)
 
         # Verify no variables were passed
         call_args = mock_httpx_client.post.call_args
@@ -546,7 +546,7 @@ class TestExecuteQueryEdgeCases:
         mock_httpx_client.post.return_value = mock_response
 
         with pytest.raises(GraphQLError) as exc_info:
-            await github_graphql._execute_query("query { viewer { login } }")
+            await github_graphql.execute_query("query { viewer { login } }")
 
         error_msg = str(exc_info.value)
         assert "Authentication required" in error_msg
@@ -569,7 +569,7 @@ class TestExecuteQueryEdgeCases:
         mock_httpx_client.post.return_value = mock_response
 
         with pytest.raises(httpx.HTTPStatusError):
-            await github_graphql._execute_query("query { viewer { login } }")
+            await github_graphql.execute_query("query { viewer { login } }")
 
     @pytest.mark.asyncio
     async def test_execute_query_timeout(self, github_graphql, mock_httpx_client):
@@ -579,7 +579,7 @@ class TestExecuteQueryEdgeCases:
         )
 
         with pytest.raises(httpx.TimeoutException) as exc_info:
-            await github_graphql._execute_query("query { viewer { login } }")
+            await github_graphql.execute_query("query { viewer { login } }")
 
         assert "timed out" in str(exc_info.value)
 
@@ -595,7 +595,7 @@ class TestExecuteQueryEdgeCases:
         )
 
         with pytest.raises(httpx.ConnectError):
-            await github_graphql._execute_query("query { viewer { login } }")
+            await github_graphql.execute_query("query { viewer { login } }")
 
 
 class TestFetchProjectItemsEdgeCases:
@@ -900,7 +900,8 @@ class TestFetchProjectDetailsEdgeCases:
         assert len(result["fields"]["nodes"]) == 1
         field = result["fields"]["nodes"][0]
         assert field["dataType"] == "ITERATION"
-        assert len(field["configuration"]["iterations"]) == 2
+        expected_iterations_count = 2
+        assert len(field["configuration"]["iterations"]) == expected_iterations_count
 
     @pytest.mark.asyncio
     async def test_fetch_project_details_no_description(
@@ -1279,7 +1280,8 @@ class TestInitializationEdgeCases:
         """Test initialization with custom base URL."""
         with patch("src.github.graphql_api.httpx.AsyncClient") as mock_client:
             custom_url = "https://custom.github.com/graphql"
-            graphql = GitHubGraphQL(token="test", base_url=custom_url)
+            test_token = "fake_token_for_testing"  # noqa: S105
+            graphql = GitHubGraphQL(token=test_token, base_url=custom_url)
 
             assert graphql.base_url == custom_url
             call_kwargs = mock_client.call_args[1]
@@ -1295,7 +1297,8 @@ class TestInitializationEdgeCases:
     def test_init_timeout_configuration(self):
         """Test that timeout is configured correctly."""
         with patch("src.github.graphql_api.httpx.AsyncClient") as mock_client:
-            graphql = GitHubGraphQL(token="test")
+            test_token = "fake_token_for_testing"  # noqa: S105
+            _ = GitHubGraphQL(token=test_token)  # Trigger initialization to test timeout config
 
             call_kwargs = mock_client.call_args[1]
             assert call_kwargs["timeout"] == TEST_TIMEOUT_FLOAT
@@ -1308,8 +1311,10 @@ class TestContextManagerEdgeCases:
     async def test_context_manager_with_exception(self, mock_httpx_client):
         """Test that context manager cleans up even with exceptions."""
         try:
-            async with GitHubGraphQL(token="test") as graphql:
-                raise ValueError("Test exception")
+            test_token = "fake_token_for_testing"  # noqa: S105
+            async with GitHubGraphQL(token=test_token):
+                error_msg = "Test exception"
+                raise ValueError(error_msg)  # noqa: TRY301
         except ValueError:
             pass
 
@@ -1329,7 +1334,8 @@ class TestContextManagerEdgeCases:
         }
         mock_httpx_client.post.return_value = mock_response
 
-        async with GitHubGraphQL(token="test") as graphql:
+        test_token = "fake_token_for_testing"  # noqa: S105
+        async with GitHubGraphQL(token=test_token) as graphql:
             await graphql.fetch_project_details("PVT_1")
             await graphql.fetch_project_details("PVT_2")
 
