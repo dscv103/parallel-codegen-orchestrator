@@ -8,17 +8,30 @@ Tests cover:
 - Agent failure and recovery
 """
 
-import pytest
 from unittest.mock import Mock, patch
 
+import pytest
+
 from src.agents.agent_pool import (
+    DEFAULT_MAX_AGENTS,
+    MAX_AGENTS_LIMIT,
+    MIN_AGENTS,
     AgentPool,
     AgentStatus,
     ManagedAgent,
-    DEFAULT_MAX_AGENTS,
-    MIN_AGENTS,
-    MAX_AGENTS_LIMIT,
 )
+
+# Test constants
+TEST_TOKEN = "test-token"  # noqa: S105
+TEST_ORG_ID = "123"
+TEST_ORG_ID_INT = 999
+EXPECTED_ENUM_COUNT = 3
+CUSTOM_POOL_SIZE = 5
+SMALL_POOL_SIZE = 3
+MEDIUM_POOL_SIZE = 7
+DUAL_AGENT_POOL = 2
+SINGLE_AGENT_POOL = 1
+EXPECTED_CYCLE_LENGTH = 3
 
 
 class TestAgentStatus:
@@ -33,7 +46,7 @@ class TestAgentStatus:
     def test_agent_status_enum_members(self):
         """Test that all enum members exist."""
         statuses = list(AgentStatus)
-        assert len(statuses) == 3
+        assert len(statuses) == EXPECTED_ENUM_COUNT
         assert AgentStatus.IDLE in statuses
         assert AgentStatus.BUSY in statuses
         assert AgentStatus.FAILED in statuses
@@ -62,7 +75,7 @@ class TestManagedAgent:
             current_task="task-123",
         )
 
-        assert managed_agent.id == 1
+        assert managed_agent.id == SINGLE_AGENT_POOL
         assert managed_agent.agent == mock_agent
         assert managed_agent.status == AgentStatus.BUSY
         assert managed_agent.current_task == "task-123"
@@ -74,40 +87,38 @@ class TestAgentPoolInitialization:
     @patch("src.agents.agent_pool.Agent")
     def test_pool_initialization_default_size(self, mock_agent_class):
         """Test initializing pool with default size."""
-        pool = AgentPool(org_id="123", token="test-token")
+        pool = AgentPool(org_id=TEST_ORG_ID, token=TEST_TOKEN)
 
-        assert pool.org_id == "123"
-        assert pool.token == "test-token"
+        assert pool.org_id == TEST_ORG_ID
+        assert pool.token == TEST_TOKEN
         assert pool.max_agents == DEFAULT_MAX_AGENTS
         assert len(pool.agents) == DEFAULT_MAX_AGENTS
 
         # Verify Agent was called with correct parameters
         assert mock_agent_class.call_count == DEFAULT_MAX_AGENTS
-        mock_agent_class.assert_called_with(token="test-token", org_id=123)
+        mock_agent_class.assert_called_with(token=TEST_TOKEN, org_id=123)
 
     @patch("src.agents.agent_pool.Agent")
     def test_pool_initialization_custom_size(self, mock_agent_class):
         """Test initializing pool with custom size."""
         custom_size = 5
-        pool = AgentPool(org_id="456", token="test-token", max_agents=custom_size)
+        pool = AgentPool(org_id="456", token=TEST_TOKEN, max_agents=custom_size)
 
         assert pool.max_agents == custom_size
         assert len(pool.agents) == custom_size
         assert mock_agent_class.call_count == custom_size
 
-    @patch("src.agents.agent_pool.Agent")
-    def test_pool_initialization_minimum_size(self, mock_agent_class):
+    def test_pool_initialization_minimum_size(self):
         """Test initializing pool with minimum size."""
-        pool = AgentPool(org_id="789", token="test-token", max_agents=MIN_AGENTS)
+        pool = AgentPool(org_id="789", token=TEST_TOKEN, max_agents=MIN_AGENTS)
 
         assert pool.max_agents == MIN_AGENTS
         assert len(pool.agents) == MIN_AGENTS
 
-    @patch("src.agents.agent_pool.Agent")
-    def test_pool_initialization_maximum_size(self, mock_agent_class):
+    def test_pool_initialization_maximum_size(self):
         """Test initializing pool with maximum size."""
         pool = AgentPool(
-            org_id="999", token="test-token", max_agents=MAX_AGENTS_LIMIT
+            org_id="999", token=TEST_TOKEN, max_agents=MAX_AGENTS_LIMIT,
         )
 
         assert pool.max_agents == MAX_AGENTS_LIMIT
@@ -115,70 +126,56 @@ class TestAgentPoolInitialization:
 
     def test_pool_initialization_invalid_size_too_small(self):
         """Test that initializing with size < 1 raises ValueError."""
-        with pytest.raises(ValueError) as exc_info:
-            AgentPool(org_id="123", token="test-token", max_agents=0)
-
-        assert "must be between" in str(exc_info.value)
+        with pytest.raises(ValueError, match="must be between"):
+            AgentPool(org_id=TEST_ORG_ID, token=TEST_TOKEN, max_agents=0)
 
     def test_pool_initialization_invalid_size_too_large(self):
         """Test that initializing with size > 10 raises ValueError."""
-        with pytest.raises(ValueError) as exc_info:
-            AgentPool(org_id="123", token="test-token", max_agents=11)
-
-        assert "must be between" in str(exc_info.value)
+        with pytest.raises(ValueError, match="must be between"):
+            AgentPool(org_id=TEST_ORG_ID, token=TEST_TOKEN, max_agents=11)
 
     def test_pool_initialization_invalid_size_negative(self):
         """Test that initializing with negative size raises ValueError."""
-        with pytest.raises(ValueError) as exc_info:
-            AgentPool(org_id="123", token="test-token", max_agents=-1)
+        with pytest.raises(ValueError, match="must be between"):
+            AgentPool(org_id=TEST_ORG_ID, token=TEST_TOKEN, max_agents=-1)
 
-        assert "must be between" in str(exc_info.value)
 
     def test_pool_initialization_invalid_org_id_non_numeric(self):
         """Test that initializing with non-numeric org_id raises ValueError."""
-        with pytest.raises(ValueError) as exc_info:
-            AgentPool(org_id="abc", token="test-token", max_agents=5)
-
-        assert "must be a valid integer string" in str(exc_info.value)
-        assert "abc" in str(exc_info.value)
+        with pytest.raises(ValueError, match="must be a valid integer string"):
+            AgentPool(org_id="abc", token=TEST_TOKEN, max_agents=CUSTOM_POOL_SIZE)
 
     def test_pool_initialization_invalid_org_id_empty(self):
         """Test that initializing with empty org_id raises ValueError."""
-        with pytest.raises(ValueError) as exc_info:
-            AgentPool(org_id="", token="test-token", max_agents=5)
-
-        assert "must be a valid integer string" in str(exc_info.value)
+        with pytest.raises(ValueError, match="must be a valid integer string"):
+            AgentPool(org_id="", token=TEST_TOKEN, max_agents=CUSTOM_POOL_SIZE)
 
     def test_pool_initialization_invalid_org_id_float(self):
         """Test that initializing with float-like org_id works (converts to int)."""
-        with pytest.raises(ValueError) as exc_info:
-            AgentPool(org_id="123.45", token="test-token", max_agents=5)
-
-        assert "must be a valid integer string" in str(exc_info.value)
+        with pytest.raises(ValueError, match="must be a valid integer string"):
+            AgentPool(org_id="123.45", token=TEST_TOKEN, max_agents=CUSTOM_POOL_SIZE)
 
     @patch("src.agents.agent_pool.Agent")
     def test_pool_initialization_valid_org_id_string(self, mock_agent_class):
         """Test that valid numeric string org_id works correctly."""
-        pool = AgentPool(org_id="999", token="test-token", max_agents=2)
+        pool = AgentPool(org_id="999", token=TEST_TOKEN, max_agents=DUAL_AGENT_POOL)
 
         assert pool.org_id == "999"
-        assert pool.org_id_int == 999
+        assert pool.org_id_int == TEST_ORG_ID_INT
         # Verify Agent was called with integer org_id
-        mock_agent_class.assert_called_with(token="test-token", org_id=999)
+        mock_agent_class.assert_called_with(token=TEST_TOKEN, org_id=TEST_ORG_ID_INT)
 
-    @patch("src.agents.agent_pool.Agent")
-    def test_all_agents_start_idle(self, mock_agent_class):
+    def test_all_agents_start_idle(self):
         """Test that all agents start with IDLE status."""
-        pool = AgentPool(org_id="123", token="test-token", max_agents=5)
+        pool = AgentPool(org_id=TEST_ORG_ID, token=TEST_TOKEN, max_agents=CUSTOM_POOL_SIZE)
 
         for agent in pool.agents:
             assert agent.status == AgentStatus.IDLE
             assert agent.current_task is None
 
-    @patch("src.agents.agent_pool.Agent")
-    def test_agents_have_sequential_ids(self, mock_agent_class):
+    def test_agents_have_sequential_ids(self):
         """Test that agents are assigned sequential IDs starting from 0."""
-        pool = AgentPool(org_id="123", token="test-token", max_agents=5)
+        pool = AgentPool(org_id=TEST_ORG_ID, token=TEST_TOKEN, max_agents=CUSTOM_POOL_SIZE)
 
         for i, agent in enumerate(pool.agents):
             assert agent.id == i
@@ -187,10 +184,9 @@ class TestAgentPoolInitialization:
 class TestAgentAllocation:
     """Tests for agent allocation."""
 
-    @patch("src.agents.agent_pool.Agent")
-    def test_get_idle_agent_when_available(self, mock_agent_class):
+    def test_get_idle_agent_when_available(self):
         """Test getting an idle agent when one is available."""
-        pool = AgentPool(org_id="123", token="test-token", max_agents=3)
+        pool = AgentPool(org_id=TEST_ORG_ID, token=TEST_TOKEN, max_agents=SMALL_POOL_SIZE)
 
         agent = pool.get_idle_agent()
 
@@ -198,10 +194,9 @@ class TestAgentAllocation:
         assert agent.status == AgentStatus.IDLE
         assert isinstance(agent, ManagedAgent)
 
-    @patch("src.agents.agent_pool.Agent")
-    def test_get_idle_agent_returns_first_idle(self, mock_agent_class):
+    def test_get_idle_agent_returns_first_idle(self):
         """Test that get_idle_agent returns the first idle agent."""
-        pool = AgentPool(org_id="123", token="test-token", max_agents=3)
+        pool = AgentPool(org_id=TEST_ORG_ID, token=TEST_TOKEN, max_agents=SMALL_POOL_SIZE)
 
         # Mark first agent as busy
         pool.agents[0].status = AgentStatus.BUSY
@@ -209,12 +204,11 @@ class TestAgentAllocation:
         agent = pool.get_idle_agent()
 
         assert agent is not None
-        assert agent.id == 1  # Should return second agent
+        assert agent.id == SINGLE_AGENT_POOL  # Should return second agent
 
-    @patch("src.agents.agent_pool.Agent")
-    def test_get_idle_agent_when_none_available(self, mock_agent_class):
+    def test_get_idle_agent_when_none_available(self):
         """Test getting an idle agent when none are available."""
-        pool = AgentPool(org_id="123", token="test-token", max_agents=3)
+        pool = AgentPool(org_id=TEST_ORG_ID, token=TEST_TOKEN, max_agents=SMALL_POOL_SIZE)
 
         # Mark all agents as busy
         for agent in pool.agents:
@@ -224,10 +218,9 @@ class TestAgentAllocation:
 
         assert agent is None
 
-    @patch("src.agents.agent_pool.Agent")
-    def test_get_idle_agent_skips_failed_agents(self, mock_agent_class):
+    def test_get_idle_agent_skips_failed_agents(self):
         """Test that get_idle_agent skips failed agents."""
-        pool = AgentPool(org_id="123", token="test-token", max_agents=3)
+        pool = AgentPool(org_id=TEST_ORG_ID, token=TEST_TOKEN, max_agents=SMALL_POOL_SIZE)
 
         # Mark first agent as failed
         pool.agents[0].status = AgentStatus.FAILED
@@ -242,10 +235,9 @@ class TestAgentAllocation:
 class TestAgentStatusTransitions:
     """Tests for agent status transitions."""
 
-    @patch("src.agents.agent_pool.Agent")
-    def test_mark_busy_from_idle(self, mock_agent_class):
+    def test_mark_busy_from_idle(self):
         """Test marking an idle agent as busy."""
-        pool = AgentPool(org_id="123", token="test-token", max_agents=2)
+        pool = AgentPool(org_id=TEST_ORG_ID, token=TEST_TOKEN, max_agents=DUAL_AGENT_POOL)
         agent = pool.agents[0]
         task_id = "task-123"
 
@@ -254,36 +246,29 @@ class TestAgentStatusTransitions:
         assert agent.status == AgentStatus.BUSY
         assert agent.current_task == task_id
 
-    @patch("src.agents.agent_pool.Agent")
-    def test_mark_busy_from_busy_raises_error(self, mock_agent_class):
+    def test_mark_busy_from_busy_raises_error(self):
         """Test that marking a busy agent as busy raises ValueError."""
-        pool = AgentPool(org_id="123", token="test-token", max_agents=2)
+        pool = AgentPool(org_id=TEST_ORG_ID, token=TEST_TOKEN, max_agents=DUAL_AGENT_POOL)
         agent = pool.agents[0]
 
         pool.mark_busy(agent, "task-1")
 
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValueError, match=r"Cannot mark agent .* as busy"):
             pool.mark_busy(agent, "task-2")
-
-        assert "Cannot mark agent" in str(exc_info.value)
         assert agent.current_task == "task-1"  # Should not change
 
-    @patch("src.agents.agent_pool.Agent")
-    def test_mark_busy_from_failed_raises_error(self, mock_agent_class):
+    def test_mark_busy_from_failed_raises_error(self):
         """Test that marking a failed agent as busy raises ValueError."""
-        pool = AgentPool(org_id="123", token="test-token", max_agents=2)
+        pool = AgentPool(org_id=TEST_ORG_ID, token=TEST_TOKEN, max_agents=DUAL_AGENT_POOL)
         agent = pool.agents[0]
         agent.status = AgentStatus.FAILED
 
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValueError, match=r"Cannot mark agent .* as busy"):
             pool.mark_busy(agent, "task-1")
 
-        assert "Cannot mark agent" in str(exc_info.value)
-
-    @patch("src.agents.agent_pool.Agent")
-    def test_mark_idle_from_busy(self, mock_agent_class):
+    def test_mark_idle_from_busy(self):
         """Test marking a busy agent as idle."""
-        pool = AgentPool(org_id="123", token="test-token", max_agents=2)
+        pool = AgentPool(org_id=TEST_ORG_ID, token=TEST_TOKEN, max_agents=DUAL_AGENT_POOL)
         agent = pool.agents[0]
 
         pool.mark_busy(agent, "task-123")
@@ -292,10 +277,9 @@ class TestAgentStatusTransitions:
         assert agent.status == AgentStatus.IDLE
         assert agent.current_task is None
 
-    @patch("src.agents.agent_pool.Agent")
-    def test_mark_idle_from_failed(self, mock_agent_class):
+    def test_mark_idle_from_failed(self):
         """Test marking a failed agent as idle (should work for cleanup)."""
-        pool = AgentPool(org_id="123", token="test-token", max_agents=2)
+        pool = AgentPool(org_id=TEST_ORG_ID, token=TEST_TOKEN, max_agents=DUAL_AGENT_POOL)
         agent = pool.agents[0]
         agent.status = AgentStatus.FAILED
 
@@ -304,10 +288,9 @@ class TestAgentStatusTransitions:
         assert agent.status == AgentStatus.IDLE
         assert agent.current_task is None
 
-    @patch("src.agents.agent_pool.Agent")
-    def test_mark_failed_from_busy(self, mock_agent_class):
+    def test_mark_failed_from_busy(self):
         """Test marking a busy agent as failed."""
-        pool = AgentPool(org_id="123", token="test-token", max_agents=2)
+        pool = AgentPool(org_id=TEST_ORG_ID, token=TEST_TOKEN, max_agents=DUAL_AGENT_POOL)
         agent = pool.agents[0]
 
         pool.mark_busy(agent, "task-123")
@@ -316,10 +299,9 @@ class TestAgentStatusTransitions:
         assert agent.status == AgentStatus.FAILED
         assert agent.current_task is None
 
-    @patch("src.agents.agent_pool.Agent")
-    def test_mark_failed_from_idle(self, mock_agent_class):
+    def test_mark_failed_from_idle(self):
         """Test marking an idle agent as failed."""
-        pool = AgentPool(org_id="123", token="test-token", max_agents=2)
+        pool = AgentPool(org_id=TEST_ORG_ID, token=TEST_TOKEN, max_agents=DUAL_AGENT_POOL)
         agent = pool.agents[0]
 
         pool.mark_failed(agent)
@@ -331,10 +313,9 @@ class TestAgentStatusTransitions:
 class TestAgentRecovery:
     """Tests for agent failure handling and recovery."""
 
-    @patch("src.agents.agent_pool.Agent")
-    def test_reset_agent_from_failed(self, mock_agent_class):
+    def test_reset_agent_from_failed(self):
         """Test resetting a failed agent back to idle."""
-        pool = AgentPool(org_id="123", token="test-token", max_agents=2)
+        pool = AgentPool(org_id=TEST_ORG_ID, token=TEST_TOKEN, max_agents=DUAL_AGENT_POOL)
         agent = pool.agents[0]
 
         pool.mark_failed(agent, "Test error")
@@ -343,50 +324,41 @@ class TestAgentRecovery:
         assert agent.status == AgentStatus.IDLE
         assert agent.current_task is None
 
-    @patch("src.agents.agent_pool.Agent")
-    def test_reset_agent_from_idle_raises_error(self, mock_agent_class):
+    def test_reset_agent_from_idle_raises_error(self):
         """Test that resetting an idle agent raises ValueError."""
-        pool = AgentPool(org_id="123", token="test-token", max_agents=2)
+        pool = AgentPool(org_id=TEST_ORG_ID, token=TEST_TOKEN, max_agents=DUAL_AGENT_POOL)
         agent = pool.agents[0]
 
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValueError, match=r"Cannot reset agent .* current status is"):
             pool.reset_agent(agent)
 
-        assert "Cannot reset agent" in str(exc_info.value)
-        assert "expected FAILED" in str(exc_info.value)
-
-    @patch("src.agents.agent_pool.Agent")
-    def test_reset_agent_from_busy_raises_error(self, mock_agent_class):
+    def test_reset_agent_from_busy_raises_error(self):
         """Test that resetting a busy agent raises ValueError."""
-        pool = AgentPool(org_id="123", token="test-token", max_agents=2)
+        pool = AgentPool(org_id=TEST_ORG_ID, token=TEST_TOKEN, max_agents=DUAL_AGENT_POOL)
         agent = pool.agents[0]
 
         pool.mark_busy(agent, "task-1")
 
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValueError, match=r"Cannot reset agent .* current status is"):
             pool.reset_agent(agent)
-
-        assert "Cannot reset agent" in str(exc_info.value)
 
 
 class TestPoolStatistics:
     """Tests for pool statistics and monitoring."""
 
-    @patch("src.agents.agent_pool.Agent")
-    def test_get_stats_all_idle(self, mock_agent_class):
+    def test_get_stats_all_idle(self):
         """Test statistics when all agents are idle."""
-        pool = AgentPool(org_id="123", token="test-token", max_agents=5)
+        pool = AgentPool(org_id=TEST_ORG_ID, token=TEST_TOKEN, max_agents=CUSTOM_POOL_SIZE)
 
         stats = pool.get_stats()
 
-        assert stats["idle"] == 5
+        assert stats["idle"] == CUSTOM_POOL_SIZE
         assert stats["busy"] == 0
         assert stats["failed"] == 0
 
-    @patch("src.agents.agent_pool.Agent")
-    def test_get_stats_mixed_statuses(self, mock_agent_class):
+    def test_get_stats_mixed_statuses(self):
         """Test statistics with mixed agent statuses."""
-        pool = AgentPool(org_id="123", token="test-token", max_agents=10)
+        pool = AgentPool(org_id=TEST_ORG_ID, token=TEST_TOKEN, max_agents=10)
 
         # Mark some agents as busy
         pool.mark_busy(pool.agents[0], "task-1")
@@ -397,14 +369,13 @@ class TestPoolStatistics:
 
         stats = pool.get_stats()
 
-        assert stats["idle"] == 7
-        assert stats["busy"] == 2
-        assert stats["failed"] == 1
+        assert stats["idle"] == MEDIUM_POOL_SIZE
+        assert stats["busy"] == DUAL_AGENT_POOL
+        assert stats["failed"] == SINGLE_AGENT_POOL
 
-    @patch("src.agents.agent_pool.Agent")
-    def test_get_stats_all_busy(self, mock_agent_class):
+    def test_get_stats_all_busy(self):
         """Test statistics when all agents are busy."""
-        pool = AgentPool(org_id="123", token="test-token", max_agents=3)
+        pool = AgentPool(org_id=TEST_ORG_ID, token=TEST_TOKEN, max_agents=SMALL_POOL_SIZE)
 
         for i, agent in enumerate(pool.agents):
             pool.mark_busy(agent, f"task-{i}")
@@ -412,24 +383,22 @@ class TestPoolStatistics:
         stats = pool.get_stats()
 
         assert stats["idle"] == 0
-        assert stats["busy"] == 3
+        assert stats["busy"] == SMALL_POOL_SIZE
         assert stats["failed"] == 0
 
-    @patch("src.agents.agent_pool.Agent")
-    def test_get_total_agents(self, mock_agent_class):
+    def test_get_total_agents(self):
         """Test getting total agent count."""
-        pool = AgentPool(org_id="123", token="test-token", max_agents=7)
+        pool = AgentPool(org_id=TEST_ORG_ID, token=TEST_TOKEN, max_agents=MEDIUM_POOL_SIZE)
 
-        assert pool.get_total_agents() == 7
+        assert pool.get_total_agents() == MEDIUM_POOL_SIZE
 
 
 class TestConcurrentAllocation:
     """Tests for concurrent agent allocation scenarios."""
 
-    @patch("src.agents.agent_pool.Agent")
-    def test_multiple_allocations(self, mock_agent_class):
+    def test_multiple_allocations(self):
         """Test allocating multiple agents sequentially."""
-        pool = AgentPool(org_id="123", token="test-token", max_agents=5)
+        pool = AgentPool(org_id=TEST_ORG_ID, token=TEST_TOKEN, max_agents=CUSTOM_POOL_SIZE)
 
         allocated_agents = []
         for i in range(3):
@@ -440,17 +409,16 @@ class TestConcurrentAllocation:
 
         # Verify all allocated agents are unique
         agent_ids = [agent.id for agent in allocated_agents]
-        assert len(set(agent_ids)) == 3
+        assert len(set(agent_ids)) == SMALL_POOL_SIZE
 
         # Verify pool statistics
         stats = pool.get_stats()
-        assert stats["busy"] == 3
-        assert stats["idle"] == 2
+        assert stats["busy"] == SMALL_POOL_SIZE
+        assert stats["idle"] == DUAL_AGENT_POOL
 
-    @patch("src.agents.agent_pool.Agent")
-    def test_allocate_all_agents(self, mock_agent_class):
+    def test_allocate_all_agents(self):
         """Test allocating all agents in the pool."""
-        pool = AgentPool(org_id="123", token="test-token", max_agents=3)
+        pool = AgentPool(org_id=TEST_ORG_ID, token=TEST_TOKEN, max_agents=SMALL_POOL_SIZE)
 
         # Allocate all agents
         for i in range(3):
@@ -464,13 +432,12 @@ class TestConcurrentAllocation:
 
         # Verify all agents are busy
         stats = pool.get_stats()
-        assert stats["busy"] == 3
+        assert stats["busy"] == SMALL_POOL_SIZE
         assert stats["idle"] == 0
 
-    @patch("src.agents.agent_pool.Agent")
-    def test_release_and_reallocate(self, mock_agent_class):
+    def test_release_and_reallocate(self):
         """Test releasing an agent and reallocating it."""
-        pool = AgentPool(org_id="123", token="test-token", max_agents=2)
+        pool = AgentPool(org_id=TEST_ORG_ID, token=TEST_TOKEN, max_agents=DUAL_AGENT_POOL)
 
         # Allocate both agents
         agent1 = pool.get_idle_agent()
@@ -494,10 +461,9 @@ class TestConcurrentAllocation:
 class TestEdgeCases:
     """Tests for edge cases and error conditions."""
 
-    @patch("src.agents.agent_pool.Agent")
-    def test_mark_failed_with_error_message(self, mock_agent_class):
+    def test_mark_failed_with_error_message(self):
         """Test marking agent as failed with error message."""
-        pool = AgentPool(org_id="123", token="test-token", max_agents=2)
+        pool = AgentPool(org_id=TEST_ORG_ID, token=TEST_TOKEN, max_agents=DUAL_AGENT_POOL)
         agent = pool.agents[0]
         error_msg = "Connection timeout after 30 seconds"
 
@@ -505,22 +471,20 @@ class TestEdgeCases:
 
         assert agent.status == AgentStatus.FAILED
 
-    @patch("src.agents.agent_pool.Agent")
-    def test_mark_failed_without_error_message(self, mock_agent_class):
+    def test_mark_failed_without_error_message(self):
         """Test marking agent as failed without error message."""
-        pool = AgentPool(org_id="123", token="test-token", max_agents=2)
+        pool = AgentPool(org_id=TEST_ORG_ID, token=TEST_TOKEN, max_agents=DUAL_AGENT_POOL)
         agent = pool.agents[0]
 
         pool.mark_failed(agent)
 
         assert agent.status == AgentStatus.FAILED
 
-    @patch("src.agents.agent_pool.Agent")
-    def test_single_agent_pool(self, mock_agent_class):
+    def test_single_agent_pool(self):
         """Test pool with single agent."""
-        pool = AgentPool(org_id="123", token="test-token", max_agents=1)
+        pool = AgentPool(org_id=TEST_ORG_ID, token=TEST_TOKEN, max_agents=SINGLE_AGENT_POOL)
 
-        assert pool.get_total_agents() == 1
+        assert pool.get_total_agents() == SINGLE_AGENT_POOL
         agent = pool.get_idle_agent()
         assert agent is not None
         assert agent.id == 0
@@ -528,7 +492,7 @@ class TestEdgeCases:
     @patch("src.agents.agent_pool.Agent")
     def test_org_id_conversion_to_int(self, mock_agent_class):
         """Test that org_id is converted to int when creating agents."""
-        pool = AgentPool(org_id="999", token="test-token", max_agents=1)
+        _pool = AgentPool(org_id="999", token=TEST_TOKEN, max_agents=SINGLE_AGENT_POOL)
 
         # Verify Agent was called with int org_id
-        mock_agent_class.assert_called_with(token="test-token", org_id=999)
+        mock_agent_class.assert_called_with(token=TEST_TOKEN, org_id=TEST_ORG_ID_INT)
