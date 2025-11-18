@@ -9,13 +9,16 @@ The CI/CD pipeline automatically runs on every push and pull request to `main` a
 ## Pipeline Jobs
 
 ### 1. Code Quality Checks
+
 **What it does:**
+
 - Runs Ruff linter with all CodeRabbit rules
 - Checks code formatting (Ruff format, Black)
 - Validates import sorting (isort)
 - Performs type checking (MyPy)
 
 **Key checks:**
+
 - PEP 8 compliance
 - Type hints on all functions
 - Proper async/await patterns
@@ -25,12 +28,15 @@ The CI/CD pipeline automatically runs on every push and pull request to `main` a
 **Fails on:** Critical linting errors, formatting issues, import order problems
 
 ### 2. Security Scanning
+
 **What it does:**
+
 - Scans code for security vulnerabilities (Bandit)
 - Checks dependencies for known CVEs (pip-audit)
 - Generates security reports
 
 **Key checks:**
+
 - No hardcoded secrets
 - Safe API usage
 - Dependency vulnerabilities
@@ -40,7 +46,9 @@ The CI/CD pipeline automatically runs on every push and pull request to `main` a
 **Fails on:** High-severity security issues
 
 ### 3. YAML Validation
+
 **What it does:**
+
 - Validates YAML syntax
 - Checks YAML formatting and structure
 - Ensures consistent style
@@ -48,7 +56,9 @@ The CI/CD pipeline automatically runs on every push and pull request to `main` a
 **Fails on:** Invalid YAML, syntax errors
 
 ### 4. Markdown Linting
+
 **What it does:**
+
 - Validates Markdown documentation
 - Checks formatting consistency
 - Ensures proper structure
@@ -56,7 +66,9 @@ The CI/CD pipeline automatically runs on every push and pull request to `main` a
 **Fails on:** Major documentation issues (optional)
 
 ### 5. Shell Script Validation
+
 **What it does:**
+
 - Runs ShellCheck on all shell scripts
 - Validates bash/sh syntax
 - Checks for common scripting errors
@@ -64,12 +76,15 @@ The CI/CD pipeline automatically runs on every push and pull request to `main` a
 **Fails on:** Critical script errors (optional)
 
 ### 6. Test Suite
+
 **What it does:**
+
 - Runs all unit and integration tests
 - Generates coverage reports (target: 80%+)
 - Uploads coverage to Codecov
 
 **Key checks:**
+
 - All tests pass
 - Coverage meets threshold
 - Async tests work correctly
@@ -78,12 +93,15 @@ The CI/CD pipeline automatically runs on every push and pull request to `main` a
 **Fails on:** Test failures, insufficient coverage
 
 ### 7. Code Complexity Analysis
+
 **What it does:**
+
 - Calculates cyclomatic complexity
 - Generates maintainability index
 - Identifies complex functions
 
 **Key checks:**
+
 - Functions with complexity > 10
 - Overall maintainability score
 - Code quality metrics
@@ -91,7 +109,9 @@ The CI/CD pipeline automatically runs on every push and pull request to `main` a
 **Fails on:** (Optional - informational only)
 
 ### 8. Dependency Validation
+
 **What it does:**
+
 - Verifies Python 3.13+ compatibility
 - Checks for dependency conflicts
 - Validates requirements
@@ -101,10 +121,13 @@ The CI/CD pipeline automatically runs on every push and pull request to `main` a
 ## Configuration Files
 
 ### `.github/workflows/ci.yml`
+
 Main GitHub Actions workflow file that orchestrates all checks.
 
 ### `ruff.toml`
+
 Ruff linter configuration matching CodeRabbit rules:
+
 - Python 3.13+ target
 - Line length: 100 characters
 - All rule categories enabled (E, F, W, C90, I, N, D, UP, etc.)
@@ -112,32 +135,41 @@ Ruff linter configuration matching CodeRabbit rules:
 - Max complexity: 15
 
 ### `mypy.ini`
+
 MyPy type checker configuration:
+
 - Strict mode enabled
 - Python 3.13+ syntax
 - Ignore missing imports for third-party libs
 - Pretty output with error codes
 
 ### `pyproject.toml`
+
 Combined configuration for:
+
 - **Black**: Line length 100, Python 3.13
 - **isort**: Black-compatible profile
 - **pytest**: Coverage settings, test markers
 - **coverage**: 80%+ target, branch coverage
 
 ### `.yamllint.yaml`
+
 YAML linting rules:
+
 - Max line length: 120
 - 2-space indentation
 - Truthy values allowed
 
 ### `.markdownlint.json`
+
 Markdown style rules:
+
 - Line length: 120
 - Fenced code blocks
 - Consistent styling
 
 ### `.pre-commit-config.yaml`
+
 Pre-commit hooks for local development (see below)
 
 ## Running Checks Locally
