@@ -6,11 +6,14 @@ Provides methods for repository, issue, and PR management.
 import time
 from collections.abc import Iterator
 
+from github import Github, GithubException, RateLimitExceededException
 from github.Issue import Issue
 from github.PullRequest import PullRequest
 from github.Repository import Repository
 
-from github import Github, GithubException, RateLimitExceededException
+# Constants
+BRANCH_EXISTS_STATUS_CODE = 422
+RATE_LIMIT_THRESHOLD = 100
 
 
 class GitHubIntegration:
@@ -210,7 +213,7 @@ class GitHubIntegration:
                 sha=source_sha,
             )
         except GithubException as e:
-            if e.status == 422:
+            if e.status == BRANCH_EXISTS_STATUS_CODE:
                 raise GithubException(
                     e.status,
                     f"Branch '{branch_name}' already exists or invalid",
@@ -262,7 +265,7 @@ class GitHubIntegration:
         """
         rate_info = self.get_rate_limit()
 
-        if rate_info["remaining"] < 100:
+        if rate_info["remaining"] < RATE_LIMIT_THRESHOLD:
             reset_time = rate_info["reset"]
             wait_time = max(0, reset_time - int(time.time()))
 

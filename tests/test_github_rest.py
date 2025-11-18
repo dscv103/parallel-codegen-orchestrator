@@ -6,11 +6,11 @@ Tests follow TDD principles - written before implementation
 from unittest.mock import Mock, patch
 
 import pytest
+
+from github import Github, GithubException, RateLimitExceededException
 from github.Issue import Issue
 from github.PullRequest import PullRequest
 from github.Repository import Repository
-
-from github import Github, GithubException, RateLimitExceededException
 from src.github.rest_api import GitHubIntegration
 
 # Test constants
@@ -212,7 +212,8 @@ class TestGitHubIntegration:
         """Test error handling for invalid repository"""
         # Must happen after initialization, so we need to set it on github_integration.github
         github_integration.github.get_repo.side_effect = GithubException(
-            404, {"message": "Not Found"},
+            404,
+            {"message": "Not Found"},
         )
 
         # Execute and Assert

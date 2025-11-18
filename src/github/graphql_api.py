@@ -38,7 +38,7 @@ class GitHubGraphQL:
             timeout=30.0,
         )
 
-    async def _execute_query(
+    async def execute_query(
         self,
         query: str,
         variables: dict[str, Any] | None = None,
@@ -171,7 +171,7 @@ class GitHubGraphQL:
                 "after": after_cursor,
             }
 
-            result = await self._execute_query(query, variables)
+            result = await self.execute_query(query, variables)
 
             # Extract items
             project_node = result["data"]["node"]
@@ -244,7 +244,7 @@ class GitHubGraphQL:
         """
 
         variables = {"projectId": project_id}
-        result = await self._execute_query(query, variables)
+        result = await self.execute_query(query, variables)
 
         project = result["data"]["node"]
         if not project:
@@ -298,7 +298,7 @@ class GitHubGraphQL:
         """
 
         variables = {"itemId": item_id, "fieldName": field_name}
-        result = await self._execute_query(query, variables)
+        result = await self.execute_query(query, variables)
 
         item = result["data"]["node"]
         if not item:
@@ -367,7 +367,7 @@ class GitHubGraphQL:
             "value": {"singleSelectOptionId": option_id},
         }
 
-        await self._execute_query(mutation, variables)
+        await self.execute_query(mutation, variables)
         return True
 
     async def add_labels_to_item(
@@ -407,7 +407,7 @@ class GitHubGraphQL:
         """
 
         variables = {"itemId": item_id, "labelIds": label_ids}
-        await self._execute_query(mutation, variables)
+        await self.execute_query(mutation, variables)
         return True
 
     async def assign_users_to_item(
@@ -447,7 +447,7 @@ class GitHubGraphQL:
         """
 
         variables = {"itemId": item_id, "assigneeIds": assignee_ids}
-        await self._execute_query(mutation, variables)
+        await self.execute_query(mutation, variables)
         return True
 
     async def close(self) -> None:
