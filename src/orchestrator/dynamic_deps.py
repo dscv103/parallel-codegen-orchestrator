@@ -287,7 +287,7 @@ class DynamicDependencyManager:
         return not self.new_tasks_queue.empty()
 
     async def get_next_task(
-        self, timeout_seconds: float = 1.0
+        self, timeout_seconds: float = 1.0,
     ) -> tuple[str, dict[str, Any]] | None:
         """Get the next task from the queue.
 
