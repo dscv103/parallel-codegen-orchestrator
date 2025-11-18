@@ -14,6 +14,11 @@ from pydantic import BaseModel, Field, field_validator
 # Initialize logger
 logger = structlog.get_logger(__name__)
 
+# Constants
+REPO_PARTS_COUNT = 2
+MAX_CONCURRENT_AGENTS = 10
+HIGH_TIMEOUT_THRESHOLD = 1800  # 30 minutes
+
 
 class GitHubConfig(BaseModel):
     """GitHub API configuration settings.
@@ -62,7 +67,8 @@ class GitHubConfig(BaseModel):
             ValueError: If token is a placeholder
         """
         if "your_" in v or v == "":
-            raise ValueError("GitHub token must be set (not a placeholder)")
+            msg = "GitHub token must be set (not a placeholder)"
+            raise ValueError(msg)
         return v
 
     @field_validator("repository")
@@ -80,8 +86,9 @@ class GitHubConfig(BaseModel):
             ValueError: If repository format is invalid
         """
         parts = v.split("/")
-        if len(parts) != 2 or not all(parts):
-            raise ValueError("Repository must be in format 'owner/repo'")
+        if len(parts) != REPO_PARTS_COUNT or not all(parts):
+            msg = "Repository must be in format 'owner/repo'"
+            raise ValueError(msg)
         return v
 
     model_config = {"str_strip_whitespace": True}
@@ -124,7 +131,8 @@ class CodegenConfig(BaseModel):
             ValueError: If value is a placeholder
         """
         if "your-" in v or "your_" in v or v == "":
-            raise ValueError("Codegen configuration must be set (not a placeholder)")
+            msg = "Codegen configuration must be set (not a placeholder)"
+            raise ValueError(msg)
         return v
 
     model_config = {"str_strip_whitespace": True}
@@ -230,16 +238,18 @@ class OrchestratorConfig(BaseModel):
         config_path = Path(path)
 
         if not config_path.exists():
-            raise FileNotFoundError(f"Configuration file not found: {config_path}")
+            msg = f"Configuration file not found: {config_path}"
+            raise FileNotFoundError(msg)
 
         logger.info("loading_configuration", path=str(config_path))
 
         try:
-            with open(config_path) as f:
+            with config_path.open() as f:
                 config_data = yaml.safe_load(f)
 
             if not config_data:
-                raise ValueError("Configuration file is empty")
+                msg = "Configuration file is empty"
+                raise ValueError(msg)
 
             # Apply environment variable overrides
             config_data = cls._apply_env_overrides(config_data)
@@ -256,8 +266,9 @@ class OrchestratorConfig(BaseModel):
             return config
 
         except yaml.YAMLError as e:
-            logger.error("yaml_parse_error", error=str(e), path=str(config_path))
-            raise ValueError(f"Invalid YAML in configuration file: {e}") from e
+            logger.exception("yaml_parse_error", error=str(e), path=str(config_path))
+            msg = f"Invalid YAML in configuration file: {e}"
+            raise ValueError(msg) from e
 
     @classmethod
     def _apply_env_overrides(cls, config_data: dict) -> dict:
@@ -345,12 +356,12 @@ class OrchestratorConfig(BaseModel):
             )
 
         # Warn about resource usage
-        if self.agent.max_concurrent_agents == 10:
+        if self.agent.max_concurrent_agents == MAX_CONCURRENT_AGENTS:
             warnings.append(
-                "Using maximum concurrent agents (10) - monitor resource usage",
+                f"Using maximum concurrent agents ({MAX_CONCURRENT_AGENTS}) - monitor resource usage",
             )
 
-        if self.agent.task_timeout_seconds > 1800:  # 30 minutes
+        if self.agent.task_timeout_seconds > HIGH_TIMEOUT_THRESHOLD:  # 30 minutes
             warnings.append(
                 f"Task timeout is high ({self.agent.task_timeout_seconds}s) - "
                 "tasks may run for extended periods",
@@ -367,4 +378,3 @@ __all__ = [
     "GitHubConfig",
     "OrchestratorConfig",
 ]
-

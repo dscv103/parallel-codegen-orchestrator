@@ -200,7 +200,7 @@ class DynamicDependencyManager:
             except CycleDetectedError as e:
                 # Cycle detected across the batch
                 error_msg = f"Adding task batch would create a cycle in the dependency graph: {e}"
-                logger.error(
+                logger.exception(
                     "cycle_detected_in_batch",
                     task_count=len(normalized_tasks),
                     task_ids=list(normalized_tasks.keys()),
@@ -230,7 +230,7 @@ class DynamicDependencyManager:
 
             except Exception as e:
                 # Something went wrong during mutation/rebuild - restore original state
-                logger.error(
+                logger.exception(
                     "error_during_graph_mutation_restoring_state",
                     task_count=len(new_tasks),
                     error=str(e),
@@ -244,8 +244,9 @@ class DynamicDependencyManager:
                 logger.info("graph_state_restored_after_error")
 
                 # Re-raise as DynamicTaskRegistrationError
+                msg = f"Failed to add tasks to graph: {e}"
                 raise DynamicTaskRegistrationError(
-                    f"Failed to add tasks to graph: {e}",
+                    msg,
                 ) from e
 
             # Queue tasks for execution

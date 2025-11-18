@@ -42,7 +42,9 @@ def configure_logging(level: str = "INFO") -> None:
             structlog.contextvars.merge_contextvars,
             structlog.processors.add_log_level,
             structlog.processors.TimeStamper(fmt="iso"),
-            structlog.dev.ConsoleRenderer() if level == "DEBUG" else structlog.processors.JSONRenderer(),
+            structlog.dev.ConsoleRenderer()
+            if level == "DEBUG"
+            else structlog.processors.JSONRenderer(),
         ],
         wrapper_class=structlog.make_filtering_bound_logger(
             getattr(structlog.stdlib.LoggerFactory(), level.upper(), structlog.stdlib.INFO),
@@ -53,21 +55,22 @@ def configure_logging(level: str = "INFO") -> None:
     )
 
 
-def signal_handler(signum: int, frame: Any) -> None:
+def signal_handler(signum: int, _frame: object) -> None:
     """Handle shutdown signals (SIGINT, SIGTERM).
 
     Args:
         signum: Signal number
-        frame: Current stack frame
+        _frame: Current stack frame (unused)
     """
-    global shutdown_requested
+    global shutdown_requested  # noqa: PLW0603
     signal_name = signal.Signals(signum).name
     logger.warning("shutdown_signal_received", signal=signal_name)
     shutdown_requested = True
 
 
 async def fetch_tasks_from_github(
-    github: GitHubIntegration, config: OrchestratorConfig,
+    github: GitHubIntegration,
+    config: OrchestratorConfig,
 ) -> dict[str, dict[str, Any]]:
     """Fetch tasks from GitHub issues.
 
@@ -144,7 +147,7 @@ def build_dependency_graph(tasks: dict[str, dict[str, Any]]) -> DependencyGraph:
         return dep_graph
 
     except ValueError as e:
-        logger.error("dependency_graph_cycle_detected", error=str(e))
+        logger.exception("dependency_graph_cycle_detected", error=str(e))
         raise
 
 
@@ -208,8 +211,6 @@ async def post_results_to_github(
             summary_lines.append(f"- #{issue_num}: {task_title}")
         summary_lines.append("")
 
-    summary_comment = "\n".join(summary_lines)
-
     # Post comment to each issue (or to a central tracking issue)
     # For now, we'll post to each individual issue
     for result in results:
@@ -247,8 +248,8 @@ async def post_results_to_github(
                     issue_number=issue_number,
                     status=result.get("status"),
                 )
-            except Exception as e:
-                logger.error(
+            except (ValueError, RuntimeError) as e:
+                logger.exception(
                     "failed_to_post_result",
                     issue_number=issue_number,
                     error=str(e),
@@ -368,15 +369,15 @@ async def main_async(args: argparse.Namespace) -> int:
         return 1
 
     except FileNotFoundError as e:
-        logger.error("configuration_file_not_found", error=str(e))
+        logger.exception("configuration_file_not_found", error=str(e))
         return 1
 
     except ValueError as e:
-        logger.error("configuration_validation_error", error=str(e))
+        logger.exception("configuration_validation_error", error=str(e))
         return 1
 
     except Exception as e:
-        logger.error("orchestration_failed", error=str(e), exc_info=True)
+        logger.exception("orchestration_failed", error=str(e))
         return 1
 
 
@@ -471,9 +472,6 @@ def main() -> None:
 
     # Check if config file exists
     if not Path(args.config).exists() and not args.dry_run:
-        print(f"Error: Configuration file not found: {args.config}", file=sys.stderr)
-        print("Create a configuration file or use --config to specify a different path", file=sys.stderr)
-        print("Example: cp config.example.yaml config.yaml", file=sys.stderr)
         sys.exit(1)
 
     # Run async main
@@ -481,10 +479,8 @@ def main() -> None:
         exit_code = asyncio.run(main_async(args))
         sys.exit(exit_code)
     except KeyboardInterrupt:
-        print("\n\nInterrupted by user", file=sys.stderr)
         sys.exit(1)
 
 
 if __name__ == "__main__":
     main()
-

@@ -382,7 +382,7 @@ class TestTaskExecutionContext:
         # Verify task was queued
         task = await manager.get_next_task()
         assert task is not None
-        task_id, task_data = task
+        task_id, _task_data = task
         assert task_id == "task-discovered"
 
     @pytest.mark.asyncio
