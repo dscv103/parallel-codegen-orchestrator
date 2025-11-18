@@ -288,9 +288,9 @@ class TestRetryLogic:
             result = await executor.execute_task(task_data)
 
         # Should succeed on second attempt
-        EXPECTED_CALL_COUNT = 2
+        expected_call_count = 2
         assert result.status == TaskStatus.COMPLETED
-        assert mock_agent.run.call_count == EXPECTED_CALL_COUNT
+        assert mock_agent.run.call_count == expected_call_count
 
     @pytest.mark.asyncio
     async def test_no_retry_on_permanent_error(self):
@@ -341,11 +341,11 @@ class TestRetryLogic:
             result = await executor.execute_task(task_data)
 
         # Should fail after all retries
-        EXPECTED_RETRY_COUNT = 3
+        expected_retry_count = 3
         assert result.status == TaskStatus.FAILED
         assert "retry attempts exhausted" in result.error.lower()
-        assert mock_agent.run.call_count == EXPECTED_RETRY_COUNT
-        assert result.retry_count == EXPECTED_RETRY_COUNT
+        assert mock_agent.run.call_count == expected_retry_count
+        assert result.retry_count == expected_retry_count
 
     @pytest.mark.asyncio
     async def test_exponential_backoff(self):
@@ -378,8 +378,8 @@ class TestRetryLogic:
             await executor.execute_task(task_data)
 
         # Verify exponential backoff: 10, 20 (10 * 2^1)
-        EXPECTED_SLEEP_COUNT = 2
-        assert len(sleep_calls) == EXPECTED_SLEEP_COUNT  # Two delays (between 3 attempts)
+        expected_sleep_count = 2
+        assert len(sleep_calls) == expected_sleep_count  # Two delays (between 3 attempts)
         assert sleep_calls[0] == RETRY_DELAY_10  # First retry delay
         assert sleep_calls[1] == RETRY_DELAY_20  # Second retry delay (exponential)
 
@@ -392,42 +392,42 @@ class TestTransientErrorDetection:
         mock_agent = Mock()
         executor = CodegenExecutor(mock_agent)
 
-        assert executor._is_transient_error("Request timeout")
-        assert executor._is_transient_error("Connection timeout occurred")
+        assert executor._is_transient_error("Request timeout")  # noqa: SLF001
+        assert executor._is_transient_error("Connection timeout occurred")  # noqa: SLF001
 
     def test_is_transient_error_network(self):
         """Test detection of network errors as transient."""
         mock_agent = Mock()
         executor = CodegenExecutor(mock_agent)
 
-        assert executor._is_transient_error("Network connection failed")
-        assert executor._is_transient_error("Connection refused")
+        assert executor._is_transient_error("Network connection failed")  # noqa: SLF001
+        assert executor._is_transient_error("Connection refused")  # noqa: SLF001
 
     def test_is_transient_error_rate_limit(self):
         """Test detection of rate limit errors as transient."""
         mock_agent = Mock()
         executor = CodegenExecutor(mock_agent)
 
-        assert executor._is_transient_error("Rate limit exceeded")
+        assert executor._is_transient_error("Rate limit exceeded")  # noqa: SLF001
 
     def test_is_transient_error_http_codes(self):
         """Test detection of transient HTTP error codes."""
         mock_agent = Mock()
         executor = CodegenExecutor(mock_agent)
 
-        assert executor._is_transient_error("503 Service Unavailable")
-        assert executor._is_transient_error("502 Bad Gateway")
-        assert executor._is_transient_error("504 Gateway Timeout")
+        assert executor._is_transient_error("503 Service Unavailable")  # noqa: SLF001
+        assert executor._is_transient_error("502 Bad Gateway")  # noqa: SLF001
+        assert executor._is_transient_error("504 Gateway Timeout")  # noqa: SLF001
 
     def test_is_not_transient_error(self):
         """Test that permanent errors are not detected as transient."""
         mock_agent = Mock()
         executor = CodegenExecutor(mock_agent)
 
-        assert not executor._is_transient_error("Invalid input")
-        assert not executor._is_transient_error("Authentication failed")
-        assert not executor._is_transient_error("Resource not found")
-        assert not executor._is_transient_error(None)
+        assert not executor._is_transient_error("Invalid input")  # noqa: SLF001
+        assert not executor._is_transient_error("Authentication failed")  # noqa: SLF001
+        assert not executor._is_transient_error("Resource not found")  # noqa: SLF001
+        assert not executor._is_transient_error(None)  # noqa: SLF001
 
 
 class TestTaskResult:
@@ -472,5 +472,5 @@ class TestTaskResult:
         assert result.status == TaskStatus.FAILED
         assert result.error == "Task failed"
         assert result.result is None
-        EXPECTED_RETRY_COUNT_2 = 2
-        assert result.retry_count == EXPECTED_RETRY_COUNT_2
+        expected_retry_count_2 = 2
+        assert result.retry_count == expected_retry_count_2

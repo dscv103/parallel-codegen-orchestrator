@@ -65,18 +65,18 @@ async def example_custom_configuration():
     agent = Agent(org_id=int(org_id), token=api_token)
 
     # Constants for configuration
-    TIMEOUT_SECONDS = 300  # 5 minute timeout
-    POLL_INTERVAL_SECONDS = 5  # Check status every 5 seconds
-    RETRY_ATTEMPTS = 5  # Up to 5 retry attempts
-    RETRY_DELAY_SECONDS = 15  # 15 second base delay between retries
+    timeout_seconds = 300  # 5 minute timeout
+    poll_interval_seconds = 5  # Check status every 5 seconds
+    retry_attempts = 5  # Up to 5 retry attempts
+    retry_delay_seconds = 15  # 15 second base delay between retries
 
     # Create executor with custom settings
     executor = CodegenExecutor(
         agent,
-        timeout_seconds=TIMEOUT_SECONDS,
-        poll_interval_seconds=POLL_INTERVAL_SECONDS,
-        retry_attempts=RETRY_ATTEMPTS,
-        retry_delay_seconds=RETRY_DELAY_SECONDS,
+        timeout_seconds=timeout_seconds,
+        poll_interval_seconds=poll_interval_seconds,
+        retry_attempts=retry_attempts,
+        retry_delay_seconds=retry_delay_seconds,
     )
 
     task_data = {
@@ -103,8 +103,8 @@ async def example_multiple_tasks():
 
     agent = Agent(org_id=int(org_id), token=api_token)
 
-    POLL_INTERVAL_SECONDS = 3
-    executor = CodegenExecutor(agent, poll_interval_seconds=POLL_INTERVAL_SECONDS)
+    poll_interval_seconds = 3
+    executor = CodegenExecutor(agent, poll_interval_seconds=poll_interval_seconds)
 
     # Define multiple tasks
     tasks = [
@@ -151,15 +151,15 @@ async def example_error_handling():
     agent = Agent(org_id=int(org_id), token=api_token)
 
     # Constants for configuration
-    TIMEOUT_SECONDS = 120  # Short timeout for demo
-    RETRY_ATTEMPTS = 3
-    RETRY_DELAY_SECONDS = 10
+    timeout_seconds = 120  # Short timeout for demo
+    retry_attempts = 3
+    retry_delay_seconds = 10
 
     executor = CodegenExecutor(
         agent,
-        timeout_seconds=TIMEOUT_SECONDS,
-        retry_attempts=RETRY_ATTEMPTS,
-        retry_delay_seconds=RETRY_DELAY_SECONDS,
+        timeout_seconds=timeout_seconds,
+        retry_attempts=retry_attempts,
+        retry_delay_seconds=retry_delay_seconds,
     )
 
     # Task with potentially transient failure
