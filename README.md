@@ -8,6 +8,7 @@ A parallel agent orchestration system using Codegen API for concurrent code gene
 - ✅ **GitHub GraphQL Integration** - Projects v2 management, custom fields, queries
 - 🔄 **Parallel Execution** - Up to 10 concurrent Codegen agents
 - 📊 **Dependency Management** - Topological sorting with cycle detection
+- 🔄 **Dynamic Dependency Discovery** - Tasks can discover and add new dependencies at runtime
 - 🔐 **Rate Limit Handling** - Automatic rate limit monitoring and backoff
 - 🧪 **Test Coverage** - Comprehensive unit tests (85%+ coverage)
 
@@ -179,6 +180,99 @@ pytest tests/test_github_graphql.py -v
 pytest tests/ --cov=src/github --cov-report=html
 pytest tests/ --cov=src/github --cov-report=term-missing
 ```
+
+## Dynamic Dependency Discovery
+
+The orchestrator supports **dynamic dependency discovery**, allowing tasks to add new dependencies and tasks during execution. This enables adaptive workflows where tasks can spawn subtasks based on their findings.
+
+### Key Features
+
+- **Thread-Safe Graph Updates** - Uses `asyncio.Lock` for concurrent modifications
+- **Cycle Detection** - Validates new dependencies won't create cycles
+- **Automatic Rebuild** - Topological sort rebuilds after adding tasks
+- **Task Callback Interface** - Clean API for tasks to report discoveries
+- **Race Condition Handling** - Properly handles concurrent updates
+
+### Usage Example
+
+```python
+from src.orchestrator import (
+    DynamicDependencyManager,
+    TaskExecutionContext,
+)
+from src.graph import DependencyGraph
+
+# Initialize dependency graph and manager
+dep_graph = DependencyGraph()
+dep_graph.add_task("task-1", set())
+dep_graph.build()
+
+manager = DynamicDependencyManager(dep_graph)
+
+# During task execution, use the context to discover new tasks
+context = TaskExecutionContext(manager, "task-1")
+
+# Discover a single task
+await context.add_discovered_task(
+    "task-discovered",
+    dependencies={"task-1"},
+    task_data={
+        "prompt": "Follow-up work discovered during execution",
+        "repo_id": "org/repo",
+    },
+)
+
+# Or discover multiple tasks at once (more efficient)
+await context.add_multiple_discovered_tasks({
+    "task-a": {
+        "dependencies": {"task-1"},
+        "prompt": "Feature A",
+        "repo_id": "org/repo",
+    },
+    "task-b": {
+        "dependencies": {"task-1"},
+        "prompt": "Feature B",
+        "repo_id": "org/repo",
+    },
+})
+```
+
+### Use Cases
+
+1. **Adaptive Planning** - Tasks spawn subtasks based on findings
+   - Example: Test task discovers bugs, creates fix tasks dynamically
+   
+2. **Conditional Dependencies** - Dependencies discovered based on runtime conditions
+   - Example: Only add migration task if schema changes detected
+   
+3. **Progressive Refinement** - Break down complex tasks into smaller ones dynamically
+   - Example: Feature task discovers it needs 3 sub-features
+
+### Error Handling
+
+The system validates all dynamic task additions:
+
+- **Cycle Detection** - Rejects tasks that would create circular dependencies
+- **Dependency Validation** - Ensures all referenced dependencies exist
+- **Type Checking** - Validates task data structure
+
+```python
+try:
+    await context.add_discovered_task(
+        "task-invalid",
+        dependencies={"task-nonexistent"},  # Invalid dependency
+        task_data={"prompt": "...", "repo_id": "..."},
+    )
+except DynamicTaskRegistrationError as e:
+    logger.error(f"Failed to register task: {e}")
+```
+
+### Implementation Details
+
+For detailed implementation information, see:
+- `src/orchestrator/dynamic_deps.py` - Core dynamic dependency manager
+- `src/graph/dependency_graph.py` - Graph copy and rebuild methods
+- `tests/test_dynamic_deps.py` - Comprehensive test suite
 
 ## Project Status
 

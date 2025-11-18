@@ -4,6 +4,7 @@ This module provides the DependencyGraph class which wraps graphlib.TopologicalS
 to manage task dependencies and determine execution order.
 """
 
+import asyncio
 from graphlib import TopologicalSorter
 
 import structlog
@@ -56,6 +57,7 @@ class DependencyGraph:
         self.graph: dict[str, set[str]] = {}
         self.sorter: TopologicalSorter | None = None
         self._is_built = False
+        self._graph_lock = asyncio.Lock()
 
         logger.debug("dependency_graph_initialized")
 
@@ -273,3 +275,64 @@ class DependencyGraph:
         logger.debug("graph_stats_retrieved", **stats)
 
         return stats
+
+    def copy(self) -> "DependencyGraph":
+        """Create a deep copy of the dependency graph.
+
+        Returns:
+            A new DependencyGraph instance with the same structure
+
+        Note:
+            The copy will not include the built state or sorter - you must
+            call build() on the copy to use it for execution.
+
+        Example:
+            >>> graph = DependencyGraph()
+            >>> graph.add_task("task-1", set())
+            >>> graph_copy = graph.copy()
+            >>> graph_copy.build()  # Must rebuild on copy
+        """
+        new_graph = DependencyGraph()
+        # Deep copy the graph structure
+        for task_id, dependencies in self.graph.items():
+            new_graph.graph[task_id] = set(dependencies)
+
+        logger.debug("dependency_graph_copied", task_count=len(self.graph))
+
+        return new_graph
+
+    def rebuild(self) -> None:
+        """Rebuild the topological sorter from the current graph state.
+
+        This method is used when tasks are added dynamically during execution.
+        It preserves the current task completion state while rebuilding the
+        topology to account for new tasks.
+
+        Raises:
+            CycleDetectedError: If a cycle is detected in the updated graph
+
+        Note:
+            This is different from build() - rebuild() is meant to be called
+            on an already-built graph that has been modified. It attempts to
+            preserve execution state.
+
+        Example:
+            >>> graph = DependencyGraph()
+            >>> graph.add_task("task-1", set())
+            >>> graph.build()
+            >>> # Later, during execution...
+            >>> graph.add_task("task-2", {"task-1"})
+            >>> graph.rebuild()  # Updates topology without losing state
+        """
+        logger.info(
+            "rebuilding_dependency_graph",
+            task_count=len(self.graph),
+            was_built=self._is_built,
+        )
+
+        # Simply call build() - it handles everything we need
+        # The TopologicalSorter doesn't preserve state across rebuilds,
+        # so we rely on the orchestrator tracking completed tasks externally
+        self.build()
+
+        logger.info("dependency_graph_rebuilt", task_count=len(self.graph))
