@@ -6,11 +6,10 @@ Provides methods for repository, issue, and PR management.
 import time
 from collections.abc import Iterator
 
+from github import Github, GithubException, RateLimitExceededException
 from github.Issue import Issue
 from github.PullRequest import PullRequest
 from github.Repository import Repository
-
-from github import Github, GithubException, RateLimitExceededException
 
 # Constants
 BRANCH_EXISTS_STATUS_CODE = 422
