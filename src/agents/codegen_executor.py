@@ -167,7 +167,7 @@ class CodegenExecutor:
         """
         task_id = task_data.get("task_id", "unknown")
         last_error = None
-        overall_start_time = datetime.now()
+        overall_start_time = datetime.now(UTC)
 
         for attempt in range(self.retry_attempts):
             try:

@@ -181,7 +181,7 @@ async def example_error_handling():
         else:
             logger.info("Task succeeded: %s", result.status.value)
 
-    except Exception as e:
+    except Exception:
         logger.exception("Unexpected error occurred")
 
 
@@ -201,7 +201,7 @@ async def main():
         await example_multiple_tasks()
         await example_error_handling()
 
-    except Exception as e:
+    except Exception:
         logger.exception("Error running examples")
         logger.info("Make sure to set valid CODEGEN_ORG_ID and CODEGEN_API_TOKEN")
 
