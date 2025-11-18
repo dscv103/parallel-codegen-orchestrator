@@ -8,9 +8,8 @@ Tests cover:
 - Error handling
 """
 
-import asyncio
-from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -19,6 +18,19 @@ from src.agents.codegen_executor import (
     TaskResult,
     TaskStatus,
 )
+
+# Test constants
+DEFAULT_TIMEOUT = 600
+DEFAULT_POLL_INTERVAL = 2
+DEFAULT_RETRY_ATTEMPTS = 3
+DEFAULT_RETRY_DELAY = 30
+CUSTOM_TIMEOUT = 300
+CUSTOM_POLL_INTERVAL = 5
+CUSTOM_RETRY_ATTEMPTS = 5
+CUSTOM_RETRY_DELAY = 15
+SHORT_TIMEOUT = 120
+RETRY_DELAY_10 = 10
+RETRY_DELAY_20 = 20
 
 
 class TestCodegenExecutor:
@@ -30,26 +42,26 @@ class TestCodegenExecutor:
         executor = CodegenExecutor(mock_agent)
 
         assert executor.agent == mock_agent
-        assert executor.timeout_seconds == 600
-        assert executor.poll_interval_seconds == 2
-        assert executor.retry_attempts == 3
-        assert executor.retry_delay_seconds == 30
+        assert executor.timeout_seconds == DEFAULT_TIMEOUT
+        assert executor.poll_interval_seconds == DEFAULT_POLL_INTERVAL
+        assert executor.retry_attempts == DEFAULT_RETRY_ATTEMPTS
+        assert executor.retry_delay_seconds == DEFAULT_RETRY_DELAY
 
     def test_init_with_custom_params(self):
         """Test executor initialization with custom parameters."""
         mock_agent = Mock()
         executor = CodegenExecutor(
             mock_agent,
-            timeout_seconds=300,
-            poll_interval_seconds=5,
-            retry_attempts=5,
-            retry_delay_seconds=15,
+            timeout_seconds=CUSTOM_TIMEOUT,
+            poll_interval_seconds=CUSTOM_POLL_INTERVAL,
+            retry_attempts=CUSTOM_RETRY_ATTEMPTS,
+            retry_delay_seconds=CUSTOM_RETRY_DELAY,
         )
 
-        assert executor.timeout_seconds == 300
-        assert executor.poll_interval_seconds == 5
-        assert executor.retry_attempts == 5
-        assert executor.retry_delay_seconds == 15
+        assert executor.timeout_seconds == CUSTOM_TIMEOUT
+        assert executor.poll_interval_seconds == CUSTOM_POLL_INTERVAL
+        assert executor.retry_attempts == CUSTOM_RETRY_ATTEMPTS
+        assert executor.retry_delay_seconds == CUSTOM_RETRY_DELAY
 
     def test_init_with_invalid_timeout(self):
         """Test that initialization fails with timeout below minimum."""
@@ -63,7 +75,7 @@ class TestCodegenExecutor:
         mock_agent = Mock()
 
         with pytest.raises(
-            ValueError, match="poll_interval_seconds must be at least 1"
+            ValueError, match="poll_interval_seconds must be at least 1",
         ):
             CodegenExecutor(mock_agent, poll_interval_seconds=0)
 
@@ -106,7 +118,7 @@ class TestTaskExecution:
         assert result.error is None
         assert result.duration_seconds >= 0
         mock_agent.run.assert_called_once_with(
-            prompt="Implement feature X", repo_id="org/repo"
+            prompt="Implement feature X", repo_id="org/repo",
         )
 
     @pytest.mark.asyncio
@@ -248,7 +260,7 @@ class TestRetryLogic:
         # First call fails with transient error, second succeeds
         call_count = [0]
 
-        def run_side_effect(*args, **kwargs):
+        def run_side_effect(*_args, **_kwargs):
             call_count[0] += 1
             mock_task = Mock()
             if call_count[0] == 1:
@@ -263,7 +275,7 @@ class TestRetryLogic:
         mock_agent.run = Mock(side_effect=run_side_effect)
 
         executor = CodegenExecutor(
-            mock_agent, retry_attempts=3, retry_delay_seconds=5
+            mock_agent, retry_attempts=3, retry_delay_seconds=5,
         )
 
         task_data = {
@@ -276,8 +288,9 @@ class TestRetryLogic:
             result = await executor.execute_task(task_data)
 
         # Should succeed on second attempt
+        EXPECTED_CALL_COUNT = 2
         assert result.status == TaskStatus.COMPLETED
-        assert mock_agent.run.call_count == 2
+        assert mock_agent.run.call_count == EXPECTED_CALL_COUNT
 
     @pytest.mark.asyncio
     async def test_no_retry_on_permanent_error(self):
@@ -315,7 +328,7 @@ class TestRetryLogic:
         mock_agent.run = Mock(return_value=mock_task)
 
         executor = CodegenExecutor(
-            mock_agent, retry_attempts=3, retry_delay_seconds=5
+            mock_agent, retry_attempts=3, retry_delay_seconds=5,
         )
 
         task_data = {
@@ -328,10 +341,11 @@ class TestRetryLogic:
             result = await executor.execute_task(task_data)
 
         # Should fail after all retries
+        EXPECTED_RETRY_COUNT = 3
         assert result.status == TaskStatus.FAILED
         assert "retry attempts exhausted" in result.error.lower()
-        assert mock_agent.run.call_count == 3
-        assert result.retry_count == 3
+        assert mock_agent.run.call_count == EXPECTED_RETRY_COUNT
+        assert result.retry_count == EXPECTED_RETRY_COUNT
 
     @pytest.mark.asyncio
     async def test_exponential_backoff(self):
@@ -346,7 +360,7 @@ class TestRetryLogic:
         mock_agent.run = Mock(return_value=mock_task)
 
         executor = CodegenExecutor(
-            mock_agent, retry_attempts=3, retry_delay_seconds=10
+            mock_agent, retry_attempts=3, retry_delay_seconds=10,
         )
 
         task_data = {
@@ -364,9 +378,10 @@ class TestRetryLogic:
             await executor.execute_task(task_data)
 
         # Verify exponential backoff: 10, 20 (10 * 2^1)
-        assert len(sleep_calls) == 2  # Two delays (between 3 attempts)
-        assert sleep_calls[0] == 10  # First retry delay
-        assert sleep_calls[1] == 20  # Second retry delay (exponential)
+        EXPECTED_SLEEP_COUNT = 2
+        assert len(sleep_calls) == EXPECTED_SLEEP_COUNT  # Two delays (between 3 attempts)
+        assert sleep_calls[0] == RETRY_DELAY_10  # First retry delay
+        assert sleep_calls[1] == RETRY_DELAY_20  # Second retry delay (exponential)
 
 
 class TestTransientErrorDetection:
@@ -420,8 +435,8 @@ class TestTaskResult:
 
     def test_task_result_success(self):
         """Test TaskResult for successful execution."""
-        start = datetime.now()
-        end = datetime.now()
+        start = datetime.now(UTC)
+        end = datetime.now(UTC)
 
         result = TaskResult(
             task_id="task-1",
@@ -440,8 +455,8 @@ class TestTaskResult:
 
     def test_task_result_failure(self):
         """Test TaskResult for failed execution."""
-        start = datetime.now()
-        end = datetime.now()
+        start = datetime.now(UTC)
+        end = datetime.now(UTC)
 
         result = TaskResult(
             task_id="task-2",
@@ -457,5 +472,5 @@ class TestTaskResult:
         assert result.status == TaskStatus.FAILED
         assert result.error == "Task failed"
         assert result.result is None
-        assert result.retry_count == 2
-
+        EXPECTED_RETRY_COUNT_2 = 2
+        assert result.retry_count == EXPECTED_RETRY_COUNT_2

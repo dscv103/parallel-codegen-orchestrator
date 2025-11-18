@@ -5,8 +5,8 @@ execution with async polling, timeout handling, and retry logic.
 """
 
 import asyncio
-from dataclasses import dataclass, field
-from datetime import datetime
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -240,7 +240,7 @@ class CodegenExecutor:
         )
 
         # Return a failed result with the last error and accurate timing
-        overall_end_time = datetime.now()
+        overall_end_time = datetime.now(UTC)
         return TaskResult(
             task_id=task_id,
             status=TaskStatus.FAILED,
@@ -274,7 +274,7 @@ class CodegenExecutor:
             msg = "Task data must include 'prompt'"
             raise ValueError(msg)
 
-        start_time = datetime.now()
+        start_time = datetime.now(UTC)
 
         logger.info(
             "task_started",
@@ -305,7 +305,7 @@ class CodegenExecutor:
                         timeout_seconds=self.timeout_seconds,
                     )
 
-                    end_time = datetime.now()
+                    end_time = datetime.now(UTC)
                     return TaskResult(
                         task_id=task_id,
                         status=TaskStatus.FAILED,
@@ -328,7 +328,7 @@ class CodegenExecutor:
                     elapsed_seconds=elapsed_time,
                 )
 
-            end_time = datetime.now()
+            end_time = datetime.now(UTC)
             duration = (end_time - start_time).total_seconds()
 
             # Build result based on final status
@@ -347,27 +347,26 @@ class CodegenExecutor:
                     duration_seconds=duration,
                     result={"data": task.result} if hasattr(task, "result") else None,
                 )
-            else:  # task.status == "failed"
-                error_msg = task.error if hasattr(task, "error") else "Unknown error"
+            error_msg = task.error if hasattr(task, "error") else "Unknown error"
 
-                logger.error(
-                    "task_failed",
-                    task_id=task_id,
-                    duration_seconds=duration,
-                    error=error_msg,
-                )
+            logger.error(
+                "task_failed",
+                task_id=task_id,
+                duration_seconds=duration,
+                error=error_msg,
+            )
 
-                return TaskResult(
-                    task_id=task_id,
-                    status=TaskStatus.FAILED,
-                    start_time=start_time,
-                    end_time=end_time,
-                    duration_seconds=duration,
-                    error=error_msg,
-                )
+            return TaskResult(
+                task_id=task_id,
+                status=TaskStatus.FAILED,
+                start_time=start_time,
+                end_time=end_time,
+                duration_seconds=duration,
+                error=error_msg,
+            )
 
         except Exception as e:
-            end_time = datetime.now()
+            end_time = datetime.now(UTC)
             duration = (end_time - start_time).total_seconds()
 
             logger.exception(
