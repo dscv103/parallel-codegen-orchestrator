@@ -51,10 +51,10 @@ class DependencyGraph:
         >>> ready = graph.get_ready_tasks()  # Returns ("task-2",)
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize an empty dependency graph."""
         self.graph: dict[str, set[str]] = {}
-        self.sorter: TopologicalSorter | None = None
+        self.sorter: TopologicalSorter[str] | None = None
         self._is_built = False
 
         logger.debug("dependency_graph_initialized")

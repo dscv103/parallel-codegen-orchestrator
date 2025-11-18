@@ -90,7 +90,7 @@ class GraphValidator:
     - Graph visualization generation
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the graph validator."""
         self._visited: set[str] = set()
         self._rec_stack: set[str] = set()

@@ -26,7 +26,7 @@ class DependencyParser:
         r"Requires #(\d+)",
     ]
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the dependency parser."""
         self.compiled_patterns = [
             re.compile(pattern, re.IGNORECASE) for pattern in self.DEPENDENCY_PATTERNS
@@ -79,7 +79,7 @@ class DependencyParser:
         Returns:
             Set of dependency identifiers
         """
-        dependencies = set()
+        dependencies: set[str] = set()
 
         for pattern in self.compiled_patterns:
             matches = pattern.findall(body)
@@ -143,7 +143,7 @@ class DependencyParser:
         issue_body: str | None,
         labels: list[str],
         valid_issue_numbers: set[str],
-    ) -> dict:
+    ) -> dict[str, set[str] | list[str]]:
         """Parse and validate dependencies in one step.
 
         Args:

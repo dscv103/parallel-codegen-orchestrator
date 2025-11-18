@@ -75,7 +75,8 @@ class TestCodegenExecutor:
         mock_agent = Mock()
 
         with pytest.raises(
-            ValueError, match="poll_interval_seconds must be at least 1",
+            ValueError,
+            match="poll_interval_seconds must be at least 1",
         ):
             CodegenExecutor(mock_agent, poll_interval_seconds=0)
 
@@ -118,7 +119,7 @@ class TestTaskExecution:
         assert result.error is None
         assert result.duration_seconds >= 0
         mock_agent.run.assert_called_once_with(
-            prompt="Implement feature X", repo_id="org/repo",
+            prompt="Implement feature X",
         )
 
     @pytest.mark.asyncio
@@ -275,7 +276,9 @@ class TestRetryLogic:
         mock_agent.run = Mock(side_effect=run_side_effect)
 
         executor = CodegenExecutor(
-            mock_agent, retry_attempts=3, retry_delay_seconds=5,
+            mock_agent,
+            retry_attempts=3,
+            retry_delay_seconds=5,
         )
 
         task_data = {
@@ -328,7 +331,9 @@ class TestRetryLogic:
         mock_agent.run = Mock(return_value=mock_task)
 
         executor = CodegenExecutor(
-            mock_agent, retry_attempts=3, retry_delay_seconds=5,
+            mock_agent,
+            retry_attempts=3,
+            retry_delay_seconds=5,
         )
 
         task_data = {
@@ -360,7 +365,9 @@ class TestRetryLogic:
         mock_agent.run = Mock(return_value=mock_task)
 
         executor = CodegenExecutor(
-            mock_agent, retry_attempts=3, retry_delay_seconds=10,
+            mock_agent,
+            retry_attempts=3,
+            retry_delay_seconds=10,
         )
 
         task_data = {

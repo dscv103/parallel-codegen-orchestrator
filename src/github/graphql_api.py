@@ -56,7 +56,7 @@ class GitHubGraphQL:
             GraphQLError: If GraphQL errors are returned
             httpx.HTTPError: If HTTP request fails
         """
-        payload = {"query": query}
+        payload: dict[str, Any] = {"query": query}
         if variables:
             payload["variables"] = variables
 
@@ -71,7 +71,8 @@ class GitHubGraphQL:
             error_msg = f"GraphQL errors: {', '.join(error_messages)}"
             raise GraphQLError(error_msg)
 
-        return data
+        result = data.get("data", {})
+        return dict(result) if result else {}
 
     async def fetch_project_items(
         self,
@@ -251,7 +252,7 @@ class GitHubGraphQL:
             error_msg = f"Project not found: {project_id}"
             raise GraphQLError(error_msg)
 
-        return project
+        return dict(project) if project else {}
 
     async def get_custom_field_value(
         self,
@@ -311,9 +312,9 @@ class GitHubGraphQL:
 
         # Extract value based on field type
         if "name" in field_value:
-            return field_value["name"]
+            return str(field_value["name"])
         if "text" in field_value:
-            return field_value["text"]
+            return str(field_value["text"])
 
         return None
 

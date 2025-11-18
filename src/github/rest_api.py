@@ -87,15 +87,13 @@ class GitHubIntegration:
         """
         repo = self._get_repository(repo_name)
 
-        # Prepare parameters
-        kwargs = {"state": state}
-        if labels:
-            kwargs["labels"] = labels
-
         # Retry loop with exponential backoff
         for attempt in range(max_retries):
             try:
-                issues = repo.get_issues(**kwargs)
+                if labels:
+                    issues = repo.get_issues(state=state, labels=labels)
+                else:
+                    issues = repo.get_issues(state=state)
                 # Filter out pull requests (GitHub API returns PRs as issues)
                 for issue in issues:
                     if not issue.pull_request:
@@ -172,15 +170,13 @@ class GitHubIntegration:
         repo = self._get_repository(repo_name)
         issue = repo.get_issue(issue_number)
 
-        # Build update parameters
-        update_params = {}
-        if state:
-            update_params["state"] = state
-        if labels is not None:
-            update_params["labels"] = labels
-
-        if update_params:
-            issue.edit(**update_params)
+        # Update issue with proper parameter types
+        if state and labels is not None:
+            issue.edit(state=state, labels=labels)
+        elif state:
+            issue.edit(state=state)
+        elif labels is not None:
+            issue.edit(labels=labels)
 
     def create_branch(
         self,
@@ -243,7 +239,7 @@ class GitHubIntegration:
         issue = repo.get_issue(issue_number)
         issue.create_comment(comment)
 
-    def get_rate_limit(self) -> dict:
+    def get_rate_limit(self) -> dict[str, int]:
         """Get current rate limit information.
 
         Returns:
