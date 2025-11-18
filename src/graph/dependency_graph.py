@@ -285,8 +285,8 @@ class DependencyGraph:
         """
         return self._is_built
 
-    def _set_built_state(self, is_built: bool) -> None:
-        """Internal method to set the built state.
+    def set_built_state(self, is_built: bool) -> None:
+        """Set the built state.
 
         This is used for state restoration in error scenarios.
 

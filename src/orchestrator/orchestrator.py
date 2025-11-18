@@ -38,6 +38,28 @@ class OrchestrationError(Exception):
         self.task_id = task_id
 
 
+def _handle_critical_task_failure(task_id: str, error_msg: str) -> None:
+    """Handle critical task failure by raising OrchestrationError.
+
+    Args:
+        task_id: ID of the failed critical task
+        error_msg: Error message from the failed task
+
+    Raises:
+        OrchestrationError: Always raised to terminate orchestration
+    """
+    logger.error(
+        "critical_task_failed_terminating",
+        task_id=task_id,
+        error=error_msg,
+    )
+    msg = f"Critical task '{task_id}' failed: {error_msg}"
+    raise OrchestrationError(
+        msg,
+        task_id=task_id,
+    )
+
+
 class TaskOrchestrator:
     """Main orchestrator coordinating dependency-aware parallel task execution.
 
@@ -361,16 +383,7 @@ class TaskOrchestrator:
                             if isinstance(task_result, Exception)
                             else task_result.error
                         )
-                        logger.error(
-                            "critical_task_failed_terminating",
-                            task_id=task_id,
-                            error=error_msg,
-                        )
-                        msg = f"Critical task '{task_id}' failed: {error_msg}"
-                        raise OrchestrationError(
-                            msg,
-                            task_id=task_id,
-                        )
+                        _handle_critical_task_failure(task_id, error_msg)
 
                     # Process result normally
                     if isinstance(task_result, Exception):

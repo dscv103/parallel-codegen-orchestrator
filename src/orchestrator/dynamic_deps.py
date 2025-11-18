@@ -238,7 +238,7 @@ class DynamicDependencyManager:
 
                 # Restore original graph state
                 self.dep_graph.graph = original_graph_state.graph
-                self.dep_graph._set_built_state(original_is_built)
+                self.dep_graph.set_built_state(original_is_built)
                 self.dep_graph.sorter = original_graph_state.sorter
 
                 logger.info("graph_state_restored_after_error")
@@ -286,7 +286,9 @@ class DynamicDependencyManager:
         """
         return not self.new_tasks_queue.empty()
 
-    async def get_next_task(self, timeout_seconds: float = 1.0) -> tuple[str, dict[str, Any]] | None:
+    async def get_next_task(
+        self, timeout_seconds: float = 1.0
+    ) -> tuple[str, dict[str, Any]] | None:
         """Get the next task from the queue.
 
         Args:
