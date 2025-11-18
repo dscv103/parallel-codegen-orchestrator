@@ -122,7 +122,9 @@ class CodegenExecutor:
             raise ValueError(msg)
 
         if retry_delay_seconds < MIN_RETRY_DELAY:
-            msg = f"retry_delay_seconds must be at least {MIN_RETRY_DELAY}, got {retry_delay_seconds}"
+            msg = (
+                f"retry_delay_seconds must be at least {MIN_RETRY_DELAY}, got {retry_delay_seconds}"
+            )
             raise ValueError(msg)
 
         self.agent = agent

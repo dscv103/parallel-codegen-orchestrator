@@ -139,7 +139,7 @@ class DynamicDependencyManager:
                 if not isinstance(dependencies, (set, list)):
                     error_msg = f"Task {task_id} dependencies must be set or list"
                     logger.error("invalid_dependencies_type", task_id=task_id)
-                    raise ValueError(error_msg)
+                    raise TypeError(error_msg)
 
                 # Convert to set if needed
                 dep_set = set(dependencies) if isinstance(dependencies, list) else dependencies
@@ -184,9 +184,8 @@ class DynamicDependencyManager:
                     task_count=len(new_tasks),
                     error=str(e),
                 )
-                raise DynamicTaskRegistrationError(
-                    f"Unexpected cycle detected during rebuild: {e}",
-                ) from e
+                error_msg = f"Unexpected cycle detected during rebuild: {e}"
+                raise DynamicTaskRegistrationError(error_msg) from e
 
             # Queue tasks for execution
             for task_id, task_data in new_tasks.items():
@@ -231,12 +230,6 @@ class DynamicDependencyManager:
         # Try to build - if it fails with a cycle, return True
         try:
             temp_graph.build()
-            logger.debug(
-                "cycle_check_passed",
-                new_task_id=new_task_id,
-                dependencies=list(dependencies),
-            )
-            return False
         except CycleDetectedError:
             logger.warning(
                 "cycle_detected_in_validation",
@@ -244,6 +237,13 @@ class DynamicDependencyManager:
                 dependencies=list(dependencies),
             )
             return True
+        else:
+            logger.debug(
+                "cycle_check_passed",
+                new_task_id=new_task_id,
+                dependencies=list(dependencies),
+            )
+            return False
 
     def _validate_dependencies_exist(self, task_id: str, dependencies: set[str]) -> None:
         """Validate that all dependencies exist in the graph.
@@ -293,17 +293,17 @@ class DynamicDependencyManager:
         """
         return not self.new_tasks_queue.empty()
 
-    async def get_next_task(self, timeout: float = 1.0) -> tuple[str, dict[str, Any]] | None:
+    async def get_next_task(self, wait_timeout: float = 1.0) -> tuple[str, dict[str, Any]] | None:
         """Get the next task from the queue.
 
         Args:
-            timeout: Maximum time to wait for a task in seconds
+            wait_timeout: Maximum time to wait for a task in seconds
 
         Returns:
             Tuple of (task_id, task_data) or None if timeout reached
 
         Example:
-            >>> task = await manager.get_next_task(timeout=2.0)
+            >>> task = await manager.get_next_task(wait_timeout=2.0)
             >>> if task:
             ...     task_id, task_data = task
             ...     print(f"Got task: {task_id}")
@@ -311,9 +311,12 @@ class DynamicDependencyManager:
         try:
             task_id, task_data = await asyncio.wait_for(
                 self.new_tasks_queue.get(),
-                timeout=timeout,
+                timeout=wait_timeout,
             )
-
+        except TimeoutError:
+            logger.debug("no_dynamic_tasks_available", timeout=wait_timeout)
+            return None
+        else:
             logger.debug(
                 "dynamic_task_retrieved_from_queue",
                 task_id=task_id,
@@ -321,10 +324,6 @@ class DynamicDependencyManager:
             )
 
             return (task_id, task_data)
-
-        except TimeoutError:
-            logger.debug("no_dynamic_tasks_available", timeout=timeout)
-            return None
 
 
 class TaskExecutionContext:
