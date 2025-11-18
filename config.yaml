@@ -1,0 +1,59 @@
+# Parallel Codegen Orchestrator - Configuration
+# This is a sample configuration for testing purposes
+
+github:
+  # GitHub personal access token or OAuth token
+  # Required permissions: repo, read:org, write:repo_hook
+  token: "ghp_sample_token_for_testing"
+
+  # GitHub organization ID
+  organization: "sample-org"
+
+  # Repository name in format 'owner/repo'
+  repository: "sample-org/sample-repo"
+
+  # Optional: Project ID for GitHub Projects v2 (format: PVT_...)
+  # You can find this by querying the project via GraphQL
+  project_id: null
+
+  # Default branch for creating new branches
+  default_branch: "main"
+
+codegen:
+  # Codegen organization ID
+  org_id: "sample-codegen-org-id"
+
+  # Codegen API token
+  api_token: "sample-codegen-api-token"
+
+  # Optional: Custom Codegen API base URL
+  base_url: null
+
+agent:
+  # Maximum number of concurrent agents (1-10)
+  max_concurrent_agents: 10
+
+  # Task timeout in seconds
+  task_timeout_seconds: 600
+
+  # Number of retry attempts for failed tasks
+  retry_attempts: 3
+
+  # Delay between retries in seconds
+  retry_delay_seconds: 30
+
+automation:
+  # Automatically merge PRs on successful completion
+  auto_merge_on_success: false
+
+  # Post orchestration results as GitHub comments
+  post_results_as_comment: true
+
+  # Automatically update issue status/labels
+  update_issue_status: true
+
+  # Prefix for status labels (e.g., "status:in-progress")
+  status_label_prefix: "status:"
+
+# Logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+logging_level: "INFO"

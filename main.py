@@ -139,16 +139,16 @@ def build_dependency_graph(tasks: dict[str, dict[str, Any]]) -> DependencyGraph:
     # Build and validate the graph
     try:
         dep_graph.build()
+    except ValueError as e:
+        logger.exception("dependency_graph_cycle_detected", error=str(e))
+        raise
+    else:
         logger.info(
             "dependency_graph_built",
             total_tasks=len(tasks),
             has_dependencies=any(task_data.get("dependencies") for task_data in tasks.values()),
         )
         return dep_graph
-
-    except ValueError as e:
-        logger.exception("dependency_graph_cycle_detected", error=str(e))
-        raise
 
 
 async def post_results_to_github(
@@ -267,6 +267,8 @@ async def main_async(args: argparse.Namespace) -> int:
     Returns:
         Exit code (0 for success, 1 for failure)
     """
+    exit_code = 0
+
     # Configure logging
     configure_logging(args.log_level)
 
@@ -292,7 +294,7 @@ async def main_async(args: argparse.Namespace) -> int:
         # Dry run mode - validate and exit
         if args.dry_run:
             logger.info("dry_run_mode_complete", config_valid=True)
-            return 0
+            return exit_code
 
         # Initialize GitHub integration
         logger.info("initializing_github_integration", organization=config.github.organization)
@@ -306,7 +308,7 @@ async def main_async(args: argparse.Namespace) -> int:
 
         if not tasks:
             logger.warning("no_tasks_found", repository=config.github.repository)
-            return 0
+            return exit_code
 
         # Build dependency graph
         dep_graph = build_dependency_graph(tasks)
@@ -341,44 +343,44 @@ async def main_async(args: argparse.Namespace) -> int:
         # Check for shutdown
         if shutdown_requested:
             logger.warning("orchestration_interrupted_by_signal")
-            return 1
+            exit_code = 1
+        else:
+            # Log summary
+            summary = result_manager.get_summary()
+            logger.info(
+                "orchestration_complete",
+                total=summary.get("total_tasks", 0),
+                successful=summary.get("successful", 0),
+                failed=summary.get("failed", 0),
+                duration=summary.get("total_duration_seconds", 0),
+            )
 
-        # Log summary
-        summary = result_manager.get_summary()
-        logger.info(
-            "orchestration_complete",
-            total=summary.get("total_tasks", 0),
-            successful=summary.get("successful", 0),
-            failed=summary.get("failed", 0),
-            duration=summary.get("total_duration_seconds", 0),
-        )
+            # Post results back to GitHub
+            if config.automation.post_results_as_comment and not args.no_post_results:
+                await post_results_to_github(github, results, config)
 
-        # Post results back to GitHub
-        if config.automation.post_results_as_comment and not args.no_post_results:
-            await post_results_to_github(github, results, config)
-
-        # Return exit code based on results
-        if summary.get("failed", 0) > 0:
-            logger.warning("orchestration_had_failures", failed_count=summary.get("failed"))
-            return 1
-
-        return 0
+            # Set exit code based on results
+            if summary.get("failed", 0) > 0:
+                logger.warning("orchestration_had_failures", failed_count=summary.get("failed"))
+                exit_code = 1
 
     except KeyboardInterrupt:
         logger.warning("orchestration_interrupted")
-        return 1
+        exit_code = 1
 
     except FileNotFoundError as e:
         logger.exception("configuration_file_not_found", error=str(e))
-        return 1
+        exit_code = 1
 
     except ValueError as e:
         logger.exception("configuration_validation_error", error=str(e))
-        return 1
+        exit_code = 1
 
     except Exception as e:
         logger.exception("orchestration_failed", error=str(e))
-        return 1
+        exit_code = 1
+
+    return exit_code
 
 
 def parse_args() -> argparse.Namespace:

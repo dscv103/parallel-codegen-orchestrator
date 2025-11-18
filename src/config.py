@@ -256,7 +256,11 @@ class OrchestratorConfig(BaseModel):
 
             # Parse and validate configuration
             config = cls(**config_data)
-
+        except yaml.YAMLError as e:
+            logger.exception("yaml_parse_error", error=str(e), path=str(config_path))
+            msg = f"Invalid YAML in configuration file: {e}"
+            raise ValueError(msg) from e
+        else:
             logger.info(
                 "configuration_loaded",
                 max_agents=config.agent.max_concurrent_agents,
@@ -264,11 +268,6 @@ class OrchestratorConfig(BaseModel):
             )
 
             return config
-
-        except yaml.YAMLError as e:
-            logger.exception("yaml_parse_error", error=str(e), path=str(config_path))
-            msg = f"Invalid YAML in configuration file: {e}"
-            raise ValueError(msg) from e
 
     @classmethod
     def _apply_env_overrides(cls, config_data: dict) -> dict:

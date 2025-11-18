@@ -241,21 +241,6 @@ class TaskOrchestrator:
                         count=len(completed_task_ids),
                         task_ids=completed_task_ids,
                     )
-
-            # Orchestration complete
-            successful_count = len([r for r in results if r.status == TaskStatus.COMPLETED])
-            failed_count = len([r for r in results if r.status == TaskStatus.FAILED])
-
-            logger.info(
-                "orchestration_completed",
-                total_tasks=len(tasks),
-                successful=successful_count,
-                failed=failed_count,
-                iterations=iteration,
-            )
-
-            return results
-
         except KeyboardInterrupt:
             logger.warning(
                 "orchestration_interrupted",
@@ -275,6 +260,20 @@ class TaskOrchestrator:
             raise OrchestrationError(
                 msg,
             ) from e
+        else:
+            # Orchestration complete
+            successful_count = len([r for r in results if r.status == TaskStatus.COMPLETED])
+            failed_count = len([r for r in results if r.status == TaskStatus.FAILED])
+
+            logger.info(
+                "orchestration_completed",
+                total_tasks=len(tasks),
+                successful=successful_count,
+                failed=failed_count,
+                iterations=iteration,
+            )
+
+            return results
 
     async def orchestrate_with_early_termination(
         self,
@@ -393,14 +392,6 @@ class TaskOrchestrator:
                 if completed_task_ids:
                     self.executor.dep_graph.mark_completed(*completed_task_ids)
 
-            logger.info(
-                "orchestration_with_early_termination_completed",
-                total_tasks=len(tasks),
-                completed_tasks=len(results),
-            )
-
-            return results
-
         except OrchestrationError:
             # Re-raise orchestration errors
             raise
@@ -414,6 +405,14 @@ class TaskOrchestrator:
             raise OrchestrationError(
                 msg,
             ) from e
+        else:
+            logger.info(
+                "orchestration_with_early_termination_completed",
+                total_tasks=len(tasks),
+                completed_tasks=len(results),
+            )
+
+            return results
 
     def get_stats(self) -> dict[str, Any]:
         """Get orchestration statistics.

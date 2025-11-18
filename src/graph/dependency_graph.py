@@ -276,6 +276,25 @@ class DependencyGraph:
 
         return stats
 
+    @property
+    def is_built(self) -> bool:
+        """Check if the graph has been built and is ready for execution.
+
+        Returns:
+            True if build() has been called successfully, False otherwise
+        """
+        return self._is_built
+
+    def _set_built_state(self, is_built: bool) -> None:
+        """Internal method to set the built state.
+
+        This is used for state restoration in error scenarios.
+
+        Args:
+            is_built: The built state to set
+        """
+        self._is_built = is_built
+
     def copy(self) -> "DependencyGraph":
         """Create a deep copy of the dependency graph.
 
