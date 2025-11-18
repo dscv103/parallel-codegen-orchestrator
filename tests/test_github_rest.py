@@ -13,6 +13,9 @@ from github.Repository import Repository
 from github import Github, GithubException, RateLimitExceededException
 from src.github.rest_api import GitHubIntegration
 
+# Test constants
+EXPECTED_RETRY_CALL_COUNT = 2  # Initial + 1 retry
+
 # Test constants to avoid magic numbers
 EXPECTED_ISSUE_COUNT = 2
 EXPECTED_PAGINATION_COUNT = 25
@@ -93,7 +96,10 @@ class TestGitHubIntegration:
         """Test issue fetching handles pagination"""
         mock_repo = Mock(spec=Repository)
         # Create mock issues to simulate pagination
-        mock_issues = [Mock(spec=Issue, number=i, title=f"Issue {i}", pull_request=None) for i in range(EXPECTED_PAGINATION_COUNT)]
+        mock_issues = [
+            Mock(spec=Issue, number=i, title=f"Issue {i}", pull_request=None)
+            for i in range(EXPECTED_PAGINATION_COUNT)
+        ]
         mock_repo.get_issues.return_value = mock_issues
         mock_github.get_repo.return_value = mock_repo
 
@@ -205,7 +211,9 @@ class TestGitHubIntegration:
     def test_error_handling_invalid_repo(self, github_integration):
         """Test error handling for invalid repository"""
         # Must happen after initialization, so we need to set it on github_integration.github
-        github_integration.github.get_repo.side_effect = GithubException(404, {"message": "Not Found"})
+        github_integration.github.get_repo.side_effect = GithubException(
+            404, {"message": "Not Found"},
+        )
 
         # Execute and Assert
         with pytest.raises(GithubException):
@@ -234,7 +242,7 @@ class TestGitHubIntegration:
 
     @pytest.mark.usefixtures("mock_github")
     @patch("time.sleep")  # Mock sleep to avoid actual delays in tests
-    def test_rate_limit_retry_succeeds(self, mock_sleep, github_integration):
+    def test_rate_limit_retry_succeeds(self, github_integration):
         """Test that rate limit retry logic works and succeeds on second attempt"""
         mock_repo = Mock(spec=Repository)
         mock_issue = Mock(spec=Issue)
@@ -261,7 +269,7 @@ class TestGitHubIntegration:
         # Assert - should succeed after one retry
         assert len(issues) == 1
         assert issues[0].number == 1
-        assert mock_repo.get_issues.call_count == 2  # Initial + 1 retry
+        assert mock_repo.get_issues.call_count == EXPECTED_RETRY_CALL_COUNT
 
     @pytest.mark.usefixtures("mock_github")
     def test_fetch_issues_with_labels_filter(self, github_integration):

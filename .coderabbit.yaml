@@ -22,7 +22,8 @@ reviews:
   path_instructions:
     - path: "src/github/**"
       instructions: |
-        Review for proper GitHub API error handling, efficient pagination, token security, async/await, and GraphQL optimization.
+        Review for proper GitHub API error handling, efficient pagination, token security,
+        async/await, and GraphQL optimization.
     - path: "src/graph/**"
       instructions: |
         Review for cycle detection, thread safety, topological sorting, edge cases, and memory efficiency.

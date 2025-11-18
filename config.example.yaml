@@ -12,8 +12,9 @@ github:
   # Repository name in format 'owner/repo'
   repository: "your-org/your-repo"
 
-  # Optional: Project number for GitHub Projects v2
-  project_number: null
+  # Optional: Project ID for GitHub Projects v2 (format: PVT_...)
+  # You can find this by querying the project via GraphQL
+  project_id: null
 
   # Default branch for creating new branches
   default_branch: "main"
