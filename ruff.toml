@@ -59,9 +59,13 @@ lint.select = [
 
 # Ignore specific rules (matches CodeRabbit config)
 lint.ignore = [
-    "E501",  # line-too-long (handled by formatter)
-    "D203",  # one-blank-line-before-class (conflicts with D211)
-    "D213",  # multi-line-summary-second-line (conflicts with D212)
+    "E501",    # line-too-long (handled by formatter)
+    "D203",    # one-blank-line-before-class (conflicts with D211)
+    "D213",    # multi-line-summary-second-line (conflicts with D212)
+    "COM812",  # trailing-comma-missing (conflicts with formatter)
+    "PLR2004", # Magic value used in comparison (acceptable in tests)
+    "TRY300",  # Consider moving this statement to an `else` block (valid pattern)
+    "TRY301",  # Abstract `raise` to an inner function (valid pattern)
 ]
 
 # Exclude patterns

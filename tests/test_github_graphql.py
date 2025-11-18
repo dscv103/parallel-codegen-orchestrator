@@ -1315,7 +1315,7 @@ class TestContextManagerEdgeCases:
             test_token = "fake_token_for_testing"  # noqa: S105
             async with GitHubGraphQL(token=test_token):
                 error_msg = "Test exception"
-                raise ValueError(error_msg)  # noqa: TRY301
+                raise ValueError(error_msg)
         except ValueError:
             pass
 

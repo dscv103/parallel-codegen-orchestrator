@@ -78,7 +78,7 @@ class TestTaskExecutorInit:
         """Test that semaphore is created with pool size."""
         executor = TaskExecutor(mock_agent_pool, dependency_graph)
 
-        assert executor.semaphore._value == 3  # noqa: SLF001, PLR2004
+        assert executor.semaphore._value == 3  # noqa: SLF001
         assert executor.agent_pool == mock_agent_pool
         assert executor.dep_graph == dependency_graph
 
@@ -99,8 +99,8 @@ class TestTaskExecutorInit:
             poll_interval_seconds=5,
         )
 
-        assert executor.timeout_seconds == 300  # noqa: PLR2004
-        assert executor.poll_interval_seconds == 5  # noqa: PLR2004
+        assert executor.timeout_seconds == 300
+        assert executor.poll_interval_seconds == 5
 
 
 class TestExecuteTask:
@@ -269,8 +269,8 @@ class TestExecuteTask:
             )
 
             # Verify max concurrent was limited by semaphore
-            assert max_concurrent <= 2  # noqa: PLR2004
-            assert len(results) == 4  # noqa: PLR2004
+            assert max_concurrent <= 2
+            assert len(results) == 4
 
 
 class TestWaitForIdleAgent:
@@ -298,7 +298,7 @@ class TestWaitForIdleAgent:
         def get_agent_after_delay():
             nonlocal call_count
             call_count += 1
-            if call_count >= 3:  # noqa: PLR2004
+            if call_count >= 3:
                 return mock_agent_pool.agents[0]
             return None
 
@@ -307,7 +307,7 @@ class TestWaitForIdleAgent:
         agent = await task_executor._wait_for_idle_agent()  # noqa: SLF001
 
         assert agent is not None
-        assert call_count == 3  # noqa: PLR2004
+        assert call_count == 3
 
 
 class TestGetOrCreateExecutor:
@@ -410,9 +410,9 @@ class TestGetStats:
 
         stats = task_executor.get_stats()
 
-        assert stats["active_tasks"] == 2  # noqa: PLR2004
+        assert stats["active_tasks"] == 2
         assert stats["completed_tasks"] == 1
-        assert stats["total_tasks"] == 3  # noqa: PLR2004
+        assert stats["total_tasks"] == 3
         assert stats["agent_pool_stats"] == {"idle": 2, "busy": 1, "failed": 0}
 
 
@@ -431,7 +431,7 @@ class TestClearResults:
                 duration_seconds=1.0,
             )
 
-        assert len(task_executor.task_results) == 3  # noqa: PLR2004
+        assert len(task_executor.task_results) == 3
 
         task_executor.clear_results()
 
