@@ -9,8 +9,8 @@ PyYAML>=6.0
 # Logging
 structlog>=24.0
 
-# Codegen SDK (if available)
-# codegen>=0.56.17
+# Codegen SDK
+codegen>=0.56.17
 
 # Development and testing dependencies
 pytest>=7.0
