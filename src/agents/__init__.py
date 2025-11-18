@@ -1,9 +1,17 @@
-"""Agent pool management for Codegen agents.
+"""Agent pool management and execution for Codegen agents.
 
 This module provides classes for managing a pool of Codegen agents
-with status tracking and allocation capabilities.
+with status tracking, allocation capabilities, and task execution.
 """
 
 from src.agents.agent_pool import AgentPool, AgentStatus, ManagedAgent
+from src.agents.codegen_executor import CodegenExecutor, TaskResult, TaskStatus
 
-__all__ = ["AgentPool", "AgentStatus", "ManagedAgent"]
+__all__ = [
+    "AgentPool",
+    "AgentStatus",
+    "ManagedAgent",
+    "CodegenExecutor",
+    "TaskResult",
+    "TaskStatus",
+]
