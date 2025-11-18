@@ -7,6 +7,7 @@ target-version = "py313"
 # Line length
 line-length = 100
 
+[lint]
 # Enable all rule categories from CodeRabbit config
 select = [
     "E",     # pycodestyle errors
@@ -79,39 +80,34 @@ exclude = [
     "*.egg-info",
 ]
 
-[per-file-ignores]
+[lint.per-file-ignores]
 # Tests can have additional flexibility
 "tests/**/*.py" = ["S101", "ANN", "D"]  # Allow assert, skip annotations and docstrings
 "**/test_*.py" = ["S101", "ANN", "D"]
 # __init__.py files don't need docstrings
 "**/__init__.py" = ["D104"]
 
-[mccabe]
+[lint.mccabe]
 # Maximum cyclomatic complexity
 max-complexity = 15
 
-[pydocstyle]
+[lint.pydocstyle]
 # Use Google-style docstrings
 convention = "google"
 
-[isort]
-# Profile matching Black formatter
-profile = "black"
-line-length = 100
+[lint.isort]
 known-first-party = ["src"]
 
-[flake8-annotations]
+[lint.flake8-annotations]
 # Allow dynamically typed expressions
 allow-star-arg-any = true
 suppress-none-returning = true
 
-[flake8-quotes]
+[lint.flake8-quotes]
 # Use double quotes
 inline-quotes = "double"
 docstring-quotes = "double"
 
-[pylint]
+[lint.pylint]
 # Maximum number of arguments
 max-args = 8
-# Maximum number of attributes
-max-attributes = 12
