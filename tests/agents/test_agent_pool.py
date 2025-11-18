@@ -134,6 +134,38 @@ class TestAgentPoolInitialization:
 
         assert "must be between" in str(exc_info.value)
 
+    def test_pool_initialization_invalid_org_id_non_numeric(self):
+        """Test that initializing with non-numeric org_id raises ValueError."""
+        with pytest.raises(ValueError) as exc_info:
+            AgentPool(org_id="abc", token="test-token", max_agents=5)
+
+        assert "must be a valid integer string" in str(exc_info.value)
+        assert "abc" in str(exc_info.value)
+
+    def test_pool_initialization_invalid_org_id_empty(self):
+        """Test that initializing with empty org_id raises ValueError."""
+        with pytest.raises(ValueError) as exc_info:
+            AgentPool(org_id="", token="test-token", max_agents=5)
+
+        assert "must be a valid integer string" in str(exc_info.value)
+
+    def test_pool_initialization_invalid_org_id_float(self):
+        """Test that initializing with float-like org_id works (converts to int)."""
+        with pytest.raises(ValueError) as exc_info:
+            AgentPool(org_id="123.45", token="test-token", max_agents=5)
+
+        assert "must be a valid integer string" in str(exc_info.value)
+
+    @patch("src.agents.agent_pool.Agent")
+    def test_pool_initialization_valid_org_id_string(self, mock_agent_class):
+        """Test that valid numeric string org_id works correctly."""
+        pool = AgentPool(org_id="999", token="test-token", max_agents=2)
+
+        assert pool.org_id == "999"
+        assert pool.org_id_int == 999
+        # Verify Agent was called with integer org_id
+        mock_agent_class.assert_called_with(token="test-token", org_id=999)
+
     @patch("src.agents.agent_pool.Agent")
     def test_all_agents_start_idle(self, mock_agent_class):
         """Test that all agents start with IDLE status."""
@@ -500,4 +532,3 @@ class TestEdgeCases:
 
         # Verify Agent was called with int org_id
         mock_agent_class.assert_called_with(token="test-token", org_id=999)
-

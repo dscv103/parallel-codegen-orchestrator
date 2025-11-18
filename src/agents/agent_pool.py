@@ -83,18 +83,26 @@ class AgentPool:
         """Initialize the agent pool.
 
         Args:
-            org_id: Codegen organization ID
+            org_id: Codegen organization ID (must be a valid integer string)
             token: Codegen API token
             max_agents: Maximum number of agents in pool (default: 10, max: 10)
 
         Raises:
-            ValueError: If max_agents is not in valid range [1, 10]
+            ValueError: If max_agents is not in valid range [1, 10] or if org_id is not a valid integer string
         """
+        # Validate org_id can be converted to int
+        try:
+            org_id_int = int(org_id)
+        except (ValueError, TypeError) as e:
+            msg = f"org_id must be a valid integer string, got '{org_id}'"
+            raise ValueError(msg) from e
+
         if not MIN_AGENTS <= max_agents <= MAX_AGENTS_LIMIT:
             msg = f"max_agents must be between {MIN_AGENTS} and {MAX_AGENTS_LIMIT}, got {max_agents}"
             raise ValueError(msg)
 
         self.org_id = org_id
+        self.org_id_int = org_id_int
         self.token = token
         self.max_agents = max_agents
         self.agents: list[ManagedAgent] = []
@@ -120,7 +128,7 @@ class AgentPool:
         """
         for i in range(self.max_agents):
             try:
-                agent = Agent(token=self.token, org_id=int(self.org_id))
+                agent = Agent(token=self.token, org_id=self.org_id_int)
                 managed_agent = ManagedAgent(
                     id=i,
                     agent=agent,
