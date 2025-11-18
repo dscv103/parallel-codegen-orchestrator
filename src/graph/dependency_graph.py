@@ -66,8 +66,10 @@ class DependencyGraph:
             task_id: Unique identifier for the task
             dependencies: Set of task IDs that this task depends on
 
-        Raises:
-            ValueError: If attempting to add tasks after the graph has been built
+        Note:
+            If adding tasks after build() has been called, this method will
+            invalidate the built state. You must call build() again before
+            calling get_ready_tasks() or mark_completed().
 
         Example:
             >>> graph = DependencyGraph()
@@ -78,10 +80,14 @@ class DependencyGraph:
             logger.warning(
                 "adding_task_to_built_graph",
                 task_id=task_id,
-                message="Graph already built. Call build() again after adding tasks.",
+                message="Graph already built. Invalidating state - call build() again.",
             )
+            # Invalidate the built state since we're modifying the graph
+            self._is_built = False
+            self.sorter = None
 
-        self.graph[task_id] = dependencies
+        # Defensively copy dependencies to avoid external mutations
+        self.graph[task_id] = set(dependencies)
 
         logger.debug(
             "task_added_to_graph",
