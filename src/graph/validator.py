@@ -176,7 +176,10 @@ class GraphValidator:
         return cycles
 
     def _dfs_cycle_detect(
-        self, node: str, graph: dict[str, set[str]], all_nodes: set[str],
+        self,
+        node: str,
+        graph: dict[str, set[str]],
+        all_nodes: set[str],
     ) -> list[str] | None:
         """DFS-based cycle detection that returns the cycle path.
 
@@ -234,10 +237,10 @@ class GraphValidator:
 
     def _build_reverse_dependency_map(self, graph: dict[str, set[str]]) -> dict[str, set[str]]:
         """Build a reverse dependency map showing which tasks depend on each task.
-        
+
         Args:
             graph: Dictionary mapping task IDs to their dependencies
-            
+
         Returns:
             Dictionary mapping task IDs to the set of tasks that depend on them
         """
@@ -251,26 +254,34 @@ class GraphValidator:
                 reverse_deps[dep].add(task)
         return reverse_deps
 
-    def _find_end_nodes(self, graph: dict[str, set[str]], reverse_deps: dict[str, set[str]]) -> set[str]:
+    def _find_end_nodes(
+        self,
+        graph: dict[str, set[str]],
+        reverse_deps: dict[str, set[str]],
+    ) -> set[str]:
         """Find end nodes (tasks that no other tasks depend on).
-        
+
         Args:
             graph: Dictionary mapping task IDs to their dependencies
             reverse_deps: Reverse dependency mapping
-            
+
         Returns:
             Set of task IDs that are end nodes
         """
         all_tasks = set(graph.keys())
         return {task for task in all_tasks if not reverse_deps.get(task, set())}
 
-    def _find_reachable_tasks_from_end_nodes(self, graph: dict[str, set[str]], end_nodes: set[str]) -> set[str]:
+    def _find_reachable_tasks_from_end_nodes(
+        self,
+        graph: dict[str, set[str]],
+        end_nodes: set[str],
+    ) -> set[str]:
         """Find all tasks reachable from end nodes using BFS traversal.
-        
+
         Args:
             graph: Dictionary mapping task IDs to their dependencies
             end_nodes: Set of end node task IDs
-            
+
         Returns:
             Set of task IDs reachable from end nodes
         """
@@ -324,7 +335,9 @@ class GraphValidator:
         return orphaned
 
     def generate_visualization(
-        self, graph: "DependencyGraph", output_format: str = "mermaid",
+        self,
+        graph: "DependencyGraph",
+        output_format: str = "mermaid",
     ) -> str:
         """Generate a visual representation of the dependency graph.
 
@@ -397,9 +410,7 @@ class GraphValidator:
 
             # Add edges
             for task_id, deps in sorted(graph.items()):
-                lines.extend(
-                    f'    "{dep}" -> "{task_id}";' for dep in sorted(deps)
-                )
+                lines.extend(f'    "{dep}" -> "{task_id}";' for dep in sorted(deps))
 
         lines.append("}")
         return "\n".join(lines)
