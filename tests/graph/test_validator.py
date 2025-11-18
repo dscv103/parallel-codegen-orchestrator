@@ -163,11 +163,11 @@ class TestCycleDetection:
 
     def test_acyclic_node_pointing_into_cycle(self):
         """Test that acyclic nodes pointing into cycles don't produce false positives.
-        
+
         This regression test ensures that the DFS recursion stack and path are
         properly cleared after each root traversal to prevent stale entries from
         leaking into subsequent traversals.
-        
+
         Graph structure: task-1 -> cycle-a <-> cycle-b
         Expected: Only one cycle detected (cycle-a <-> cycle-b), task-1 should not
         be incorrectly included in any cycle detection.
@@ -186,7 +186,7 @@ class TestCycleDetection:
         assert not report.is_valid
         assert len(report.cycles) == 1
         cycle = report.cycles[0]
-        
+
         # The cycle should only involve cycle-a and cycle-b
         assert "cycle-a" in cycle
         assert "cycle-b" in cycle
@@ -387,21 +387,21 @@ class TestGraphVisualization:
         graph.add_task("task-1", set())
 
         validator = GraphValidator()
-        
+
         # Test various case variants for mermaid
         viz_mermaid = validator.generate_visualization(graph, output_format="Mermaid")
         assert "graph TD" in viz_mermaid
-        
+
         viz_mermaid_upper = validator.generate_visualization(graph, output_format="MERMAID")
         assert "graph TD" in viz_mermaid_upper
-        
+
         # Test various case variants for dot
         viz_dot = validator.generate_visualization(graph, output_format="DOT")
         assert "digraph DependencyGraph" in viz_dot
-        
+
         viz_dot_mixed = validator.generate_visualization(graph, output_format="Dot")
         assert "digraph DependencyGraph" in viz_dot_mixed
-        
+
         # Test with leading/trailing whitespace
         viz_space = validator.generate_visualization(graph, output_format="  mermaid  ")
         assert "graph TD" in viz_space
@@ -414,7 +414,7 @@ class TestGraphVisualization:
 
         validator = GraphValidator()
         viz = validator.generate_visualization(graph, output_format="dot")
-        
+
         # Verify the generated DOT is valid and contains escaped quotes
         assert "digraph DependencyGraph" in viz
         assert '\\"' in viz  # Escaped quotes should be present
@@ -536,7 +536,7 @@ class TestEdgeCases:
         graph.add_task("task-1", set())
 
         for i in range(2, 11):
-            graph.add_task(f"task-{i}", {f"task-{i-1}"})
+            graph.add_task(f"task-{i}", {f"task-{i - 1}"})
 
         validator = GraphValidator()
         report = validator.validate(graph)
