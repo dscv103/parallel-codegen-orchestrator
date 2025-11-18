@@ -210,6 +210,74 @@ class TestDynamicDependencyManager:
         assert manager.new_tasks_queue.qsize() == 10
 
     @pytest.mark.asyncio
+    async def test_inter_batch_cycle_detection(self, manager):
+        """Test that cycles within a batch are detected."""
+        # Create a batch where tasks refer to each other in a cycle
+        new_tasks = {
+            "task-a": {
+                "dependencies": {"task-b"},  # a depends on b
+                "prompt": "Task A",
+                "repo_id": "org/repo",
+            },
+            "task-b": {
+                "dependencies": {"task-c"},  # b depends on c
+                "prompt": "Task B",
+                "repo_id": "org/repo",
+            },
+            "task-c": {
+                "dependencies": {"task-a"},  # c depends on a - creates cycle!
+                "prompt": "Task C",
+                "repo_id": "org/repo",
+            },
+        }
+
+        # This should raise an error due to the cycle
+        with pytest.raises(DynamicTaskRegistrationError) as exc_info:
+            await manager.add_dynamic_tasks(new_tasks)
+
+        assert "cycle" in str(exc_info.value).lower()
+
+        # Verify no tasks were added to the graph
+        assert "task-a" not in manager.dep_graph.graph
+        assert "task-b" not in manager.dep_graph.graph
+        assert "task-c" not in manager.dep_graph.graph
+
+    @pytest.mark.asyncio
+    async def test_batch_with_internal_dependencies(self, manager):
+        """Test that tasks within a batch can depend on each other (no cycle)."""
+        # Create a batch where tasks refer to each other without cycles
+        new_tasks = {
+            "task-a": {
+                "dependencies": {"task-1"},  # a depends on existing task
+                "prompt": "Task A",
+                "repo_id": "org/repo",
+            },
+            "task-b": {
+                "dependencies": {"task-a"},  # b depends on a (in same batch)
+                "prompt": "Task B",
+                "repo_id": "org/repo",
+            },
+            "task-c": {
+                "dependencies": {"task-b"},  # c depends on b (in same batch)
+                "prompt": "Task C",
+                "repo_id": "org/repo",
+            },
+        }
+
+        # This should succeed - no cycle, just a chain
+        await manager.add_dynamic_tasks(new_tasks)
+
+        # Verify all tasks were added
+        assert "task-a" in manager.dep_graph.graph
+        assert "task-b" in manager.dep_graph.graph
+        assert "task-c" in manager.dep_graph.graph
+
+        # Verify dependencies are correct
+        assert manager.dep_graph.graph["task-a"] == {"task-1"}
+        assert manager.dep_graph.graph["task-b"] == {"task-a"}
+        assert manager.dep_graph.graph["task-c"] == {"task-b"}
+
+    @pytest.mark.asyncio
     async def test_mark_task_completed(self, manager):
         """Test marking tasks as completed."""
         manager.mark_task_completed("task-1")

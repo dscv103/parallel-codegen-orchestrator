@@ -90,6 +90,12 @@ class DynamicDependencyManager:
         adds them to the dependency graph, rebuilds the topological sort,
         and queues them for execution.
 
+        The validation is done in two phases:
+        1. Normalize and validate individual task data
+        2. Test the entire batch on a temporary graph copy to detect inter-batch cycles
+
+        Only if both phases succeed are the tasks added to the real graph.
+
         Args:
             new_tasks: Dictionary mapping task IDs to task data:
                 {
@@ -128,64 +134,118 @@ class DynamicDependencyManager:
 
         # Acquire lock for thread-safe graph modifications
         async with self.lock:
-            # Validate each task before adding any
+            # Phase 1: Normalize and validate task data structure
+            new_task_ids = set(new_tasks.keys())
+            normalized_tasks: dict[str, set[str]] = {}
+
             for task_id, task_data in new_tasks.items():
+                # Validate dependencies field exists
                 if "dependencies" not in task_data:
                     error_msg = f"Task {task_id} missing 'dependencies' field"
                     logger.error("invalid_task_data", task_id=task_id, error=error_msg)
                     raise ValueError(error_msg)
 
                 dependencies = task_data["dependencies"]
+
+                # Validate dependencies type
                 if not isinstance(dependencies, (set, list)):
                     error_msg = f"Task {task_id} dependencies must be set or list"
                     logger.error("invalid_dependencies_type", task_id=task_id)
                     raise ValueError(error_msg)
 
-                # Convert to set if needed
+                # Normalize to set
                 dep_set = set(dependencies) if isinstance(dependencies, list) else dependencies
 
-                # Check if adding this task would create a cycle
-                if self._would_create_cycle(task_id, dep_set):
-                    error_msg = (
-                        f"Adding task {task_id} would create a cycle in the dependency graph"
-                    )
-                    logger.error(
-                        "cycle_detected_during_dynamic_add",
+                # Validate dependencies exist (either in current graph, completed tasks, or new batch)
+                for dep_id in dep_set:
+                    if (
+                        dep_id not in self.dep_graph.graph
+                        and dep_id not in self._completed_tasks
+                        and dep_id not in new_task_ids
+                    ):
+                        error_msg = (
+                            f"Task {task_id} depends on non-existent task {dep_id}. "
+                            "Dependencies must reference existing tasks or other tasks in this batch."
+                        )
+                        logger.error(
+                            "invalid_dependency_reference",
+                            task_id=task_id,
+                            missing_dependency=dep_id,
+                        )
+                        raise DynamicTaskRegistrationError(error_msg, task_id=task_id)
+
+                normalized_tasks[task_id] = dep_set
+
+            # Phase 2: Test the entire batch on a temporary graph to detect cycles
+            temp_graph = self.dep_graph.copy()
+
+            logger.debug(
+                "validating_batch_on_temp_graph",
+                task_count=len(normalized_tasks),
+            )
+
+            try:
+                # Add all new tasks to the temporary graph
+                for task_id, dep_set in normalized_tasks.items():
+                    temp_graph.add_task(task_id, dep_set)
+
+                # Try to build the temporary graph - this will detect any cycles
+                temp_graph.build()
+
+                logger.debug(
+                    "batch_validation_passed",
+                    task_count=len(normalized_tasks),
+                )
+
+            except CycleDetectedError as e:
+                # Cycle detected across the batch
+                error_msg = f"Adding task batch would create a cycle in the dependency graph: {e}"
+                logger.error(
+                    "cycle_detected_in_batch",
+                    task_count=len(normalized_tasks),
+                    task_ids=list(normalized_tasks.keys()),
+                    error=str(e),
+                )
+                raise DynamicTaskRegistrationError(error_msg) from e
+
+            # Phase 3: Validation passed - now safely add tasks to real graph
+            # Save original state in case we need to rollback
+            original_graph_state = self.dep_graph.copy()
+            original_is_built = self.dep_graph._is_built
+
+            try:
+                # Add all validated tasks to the real dependency graph
+                for task_id, dep_set in normalized_tasks.items():
+                    self.dep_graph.add_task(task_id, dep_set)
+
+                    logger.info(
+                        "dynamic_task_added_to_graph",
                         task_id=task_id,
                         dependencies=list(dep_set),
                     )
-                    raise DynamicTaskRegistrationError(error_msg, task_id=task_id)
 
-                # Validate that dependencies exist or will exist
-                self._validate_dependencies_exist(task_id, dep_set)
-
-            # All validations passed - now add tasks to graph
-            for task_id, task_data in new_tasks.items():
-                dependencies = task_data["dependencies"]
-                dep_set = set(dependencies) if isinstance(dependencies, list) else dependencies
-
-                # Add to dependency graph
-                self.dep_graph.add_task(task_id, dep_set)
-
-                logger.info(
-                    "dynamic_task_added_to_graph",
-                    task_id=task_id,
-                    dependencies=list(dep_set),
-                )
-
-            # Rebuild the topological sorter to include new tasks
-            try:
+                # Rebuild the topological sorter to include new tasks
                 self.dep_graph.rebuild()
                 logger.info("graph_rebuilt_after_dynamic_addition", task_count=len(new_tasks))
-            except CycleDetectedError as e:
-                # This shouldn't happen since we validated, but handle it anyway
-                logger.exception(
-                    "unexpected_cycle_during_rebuild",
+
+            except Exception as e:
+                # Something went wrong during mutation/rebuild - restore original state
+                logger.error(
+                    "error_during_graph_mutation_restoring_state",
                     task_count=len(new_tasks),
                     error=str(e),
                 )
+
+                # Restore original graph state
+                self.dep_graph.graph = original_graph_state.graph
+                self.dep_graph._is_built = original_is_built
+                self.dep_graph.sorter = original_graph_state.sorter
+
+                logger.info("graph_state_restored_after_error")
+
+                # Re-raise as DynamicTaskRegistrationError
                 raise DynamicTaskRegistrationError(
-                    f"Unexpected cycle detected during rebuild: {e}",
+                    f"Failed to add tasks to graph: {e}",
                 ) from e
 
             # Queue tasks for execution
@@ -203,74 +263,6 @@ class DynamicDependencyManager:
             task_count=len(new_tasks),
             queue_size=self.new_tasks_queue.qsize(),
         )
-
-    def _would_create_cycle(self, new_task_id: str, dependencies: set[str]) -> bool:
-        """Check if adding this task would create a cycle.
-
-        Creates a temporary copy of the graph, adds the new task, and attempts
-        to build it. If building fails with a cycle error, returns True.
-
-        Args:
-            new_task_id: ID of the task to potentially add
-            dependencies: Set of task IDs this task depends on
-
-        Returns:
-            True if adding the task would create a cycle, False otherwise
-
-        Example:
-            >>> # Graph has: task-1 -> task-2
-            >>> manager._would_create_cycle("task-1", {"task-2"})
-            True  # Would create cycle: task-1 -> task-2 -> task-1
-        """
-        # Create a temporary graph copy
-        temp_graph = self.dep_graph.copy()
-
-        # Add the new task to the temporary graph
-        temp_graph.add_task(new_task_id, dependencies)
-
-        # Try to build - if it fails with a cycle, return True
-        try:
-            temp_graph.build()
-            logger.debug(
-                "cycle_check_passed",
-                new_task_id=new_task_id,
-                dependencies=list(dependencies),
-            )
-            return False
-        except CycleDetectedError:
-            logger.warning(
-                "cycle_detected_in_validation",
-                new_task_id=new_task_id,
-                dependencies=list(dependencies),
-            )
-            return True
-
-    def _validate_dependencies_exist(self, task_id: str, dependencies: set[str]) -> None:
-        """Validate that all dependencies exist in the graph.
-
-        Args:
-            task_id: ID of the task being validated
-            dependencies: Set of task IDs this task depends on
-
-        Raises:
-            DynamicTaskRegistrationError: If any dependency doesn't exist
-
-        Note:
-            This allows dependencies on tasks that haven't completed yet,
-            but requires they at least exist in the graph structure.
-        """
-        for dep_id in dependencies:
-            if dep_id not in self.dep_graph.graph and dep_id not in self._completed_tasks:
-                error_msg = (
-                    f"Task {task_id} depends on non-existent task {dep_id}. "
-                    "Dependencies must reference existing tasks."
-                )
-                logger.error(
-                    "invalid_dependency_reference",
-                    task_id=task_id,
-                    missing_dependency=dep_id,
-                )
-                raise DynamicTaskRegistrationError(error_msg, task_id=task_id)
 
     def mark_task_completed(self, task_id: str) -> None:
         """Mark a task as completed for dependency validation.
