@@ -161,6 +161,40 @@ class TestCycleDetection:
         assert not report.is_valid
         assert len(report.cycles) == 1
 
+    def test_acyclic_node_pointing_into_cycle(self):
+        """Test that acyclic nodes pointing into cycles don't produce false positives.
+        
+        This regression test ensures that the DFS recursion stack and path are
+        properly cleared after each root traversal to prevent stale entries from
+        leaking into subsequent traversals.
+        
+        Graph structure: task-1 -> cycle-a <-> cycle-b
+        Expected: Only one cycle detected (cycle-a <-> cycle-b), task-1 should not
+        be incorrectly included in any cycle detection.
+        """
+        graph = DependencyGraph()
+        # Create an acyclic entry point
+        graph.add_task("task-1", set())
+        # Create a cycle that task-1 points into
+        graph.add_task("cycle-a", {"task-1", "cycle-b"})
+        graph.add_task("cycle-b", {"cycle-a"})
+
+        validator = GraphValidator()
+        report = validator.validate(graph)
+
+        # Should detect exactly one cycle (cycle-a <-> cycle-b)
+        assert not report.is_valid
+        assert len(report.cycles) == 1
+        cycle = report.cycles[0]
+        
+        # The cycle should only involve cycle-a and cycle-b
+        assert "cycle-a" in cycle
+        assert "cycle-b" in cycle
+        # task-1 should NOT appear in the cycle (it's acyclic)
+        assert "task-1" not in cycle
+        # Cycle should have length 3: [cycle-a, cycle-b, cycle-a] or similar
+        assert len(cycle) == 3
+
     def test_multiple_cycles(self):
         """Test detection of multiple independent cycles."""
         graph = DependencyGraph()

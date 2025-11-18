@@ -172,6 +172,10 @@ class GraphValidator:
                 cycle = self._dfs_cycle_detect(node, graph, all_nodes)
                 if cycle:
                     cycles.append(cycle)
+                # Clear recursion stack and path after each root DFS completes
+                # to prevent stale entries from leaking into subsequent traversals
+                self._rec_stack.clear()
+                self._path.clear()
 
         return cycles
 
