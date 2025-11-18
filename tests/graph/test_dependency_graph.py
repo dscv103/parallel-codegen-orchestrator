@@ -14,6 +14,10 @@ import pytest
 
 from src.graph.dependency_graph import CycleDetectedError, DependencyGraph
 
+# Test constants
+EXPECTED_TASK_COUNT_THREE = 3
+EXPECTED_TASK_COUNT_TWO = 2
+
 
 class TestDependencyGraphBasics:
     """Test basic functionality of DependencyGraph."""
@@ -41,7 +45,7 @@ class TestDependencyGraphBasics:
         graph.add_task("task-2", {"task-1"})
         graph.add_task("task-3", {"task-1", "task-2"})
 
-        assert len(graph.graph) == 3
+        assert len(graph.graph) == EXPECTED_TASK_COUNT_THREE
         assert graph.graph["task-1"] == set()
         assert graph.graph["task-2"] == {"task-1"}
         assert graph.graph["task-3"] == {"task-1", "task-2"}
@@ -188,7 +192,7 @@ class TestReadyTasks:
 
         ready = graph.get_ready_tasks()
 
-        assert len(ready) == 3
+        assert len(ready) == EXPECTED_TASK_COUNT_THREE
         assert set(ready) == {"task-1", "task-2", "task-3"}
 
     def test_get_ready_tasks_with_dependencies(self):
@@ -217,7 +221,7 @@ class TestReadyTasks:
         ready = graph.get_ready_tasks()
 
         # task-1 and task-2 should be ready
-        assert len(ready) == 2
+        assert len(ready) == EXPECTED_TASK_COUNT_TWO
         assert set(ready) == {"task-1", "task-2"}
 
 
@@ -284,10 +288,8 @@ class TestMarkCompleted:
         graph = DependencyGraph()
         graph.add_task("task-1", set())
 
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValueError, match="before building graph"):
             graph.mark_completed("task-1")
-
-        assert "before building graph" in str(exc_info.value)
 
     def test_mark_completed_with_no_tasks(self):
         """Test marking completed with no task IDs (edge case)."""
@@ -381,7 +383,7 @@ class TestTopologicalOrder:
 
         # Then both task-2a and task-2b should be ready
         ready = graph.get_ready_tasks()
-        assert len(ready) == 2
+        assert len(ready) == EXPECTED_TASK_COUNT_TWO
         assert set(ready) == {"task-2a", "task-2b"}
         graph.mark_completed("task-2a", "task-2b")
 
@@ -432,7 +434,7 @@ class TestGraphStats:
 
         stats = graph.get_stats()
 
-        assert stats["total_tasks"] == 2
+        assert stats["total_tasks"] == EXPECTED_TASK_COUNT_TWO
         assert stats["total_dependencies"] == 1
         assert not stats["is_built"]
         assert not stats["is_active"]
@@ -447,8 +449,8 @@ class TestGraphStats:
 
         stats = graph.get_stats()
 
-        assert stats["total_tasks"] == 3
-        assert stats["total_dependencies"] == 3  # 0 + 1 + 2
+        assert stats["total_tasks"] == EXPECTED_TASK_COUNT_THREE
+        assert stats["total_dependencies"] == EXPECTED_TASK_COUNT_THREE  # 0 + 1 + 2
         assert stats["is_built"]
         assert stats["is_active"]
 
