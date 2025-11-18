@@ -14,6 +14,12 @@ import pytest
 from src.graph.dependency_graph import DependencyGraph
 from src.graph.validator import GraphValidator, ValidationReport
 
+# Test constants
+SIMPLE_CYCLE_LENGTH = 3  # For two-task cycles: [task-a, task-b, task-a]
+THREE_TASK_CYCLE_LENGTH = 4  # For three-task cycles: [task-a, task-b, task-c, task-a]
+EXPECTED_MISSING_REFS_COUNT = 3  # Number of missing references in test
+MIN_TASK_COUNT_IN_VISUALIZATION = 4  # Minimum task count expected in visualization
+
 
 class TestValidationReport:
     """Test ValidationReport functionality."""
@@ -107,7 +113,7 @@ class TestCycleDetection:
         assert len(report.cycles) == 1
         cycle = report.cycles[0]
         # Cycle should be [task-a, task-b, task-a] or [task-b, task-a, task-b]
-        assert len(cycle) == 3
+        assert len(cycle) == SIMPLE_CYCLE_LENGTH
         assert cycle[0] == cycle[-1]  # First and last should be same (cycle)
 
     def test_self_dependency_cycle(self):
@@ -137,7 +143,7 @@ class TestCycleDetection:
         assert len(report.cycles) == 1
         cycle = report.cycles[0]
         # Should contain all three tasks plus one repeated to show cycle
-        assert len(cycle) == 4
+        assert len(cycle) == THREE_TASK_CYCLE_LENGTH
         assert cycle[0] == cycle[-1]
 
     def test_complex_graph_with_cycle(self):
@@ -210,7 +216,7 @@ class TestMissingReferences:
         validator = GraphValidator()
         report = validator.validate(graph)
 
-        assert len(report.missing_refs) == 3
+        assert len(report.missing_refs) == EXPECTED_MISSING_REFS_COUNT
         assert "missing-a" in report.missing_refs
         assert "missing-b" in report.missing_refs
         assert "missing-c" in report.missing_refs
@@ -317,7 +323,7 @@ class TestGraphVisualization:
 
         assert "graph TD" in viz
         # Should have 4 nodes
-        assert viz.count("task") >= 4
+        assert viz.count("task") >= MIN_TASK_COUNT_IN_VISUALIZATION
 
     def test_graphviz_visualization_simple_graph(self):
         """Test Graphviz DOT visualization."""

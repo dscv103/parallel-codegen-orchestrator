@@ -280,9 +280,8 @@ class GraphValidator:
             reachable.add(current)
 
             # Add all tasks that this task depends on
-            for dep in graph.get(current, set()):
-                if dep not in reachable:
-                    queue.append(dep)
+            new_deps = [dep for dep in graph.get(current, set()) if dep not in reachable]
+            queue.extend(new_deps)
 
         # Orphaned tasks are those not reachable from end nodes
         orphaned = all_tasks - reachable
