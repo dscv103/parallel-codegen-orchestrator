@@ -347,6 +347,46 @@ class TestGraphVisualization:
         with pytest.raises(ValueError, match="Unsupported format"):
             validator.generate_visualization(graph, output_format="invalid")
 
+    def test_visualization_format_case_insensitive(self):
+        """Test that format parameter accepts case-insensitive variants."""
+        graph = DependencyGraph()
+        graph.add_task("task-1", set())
+
+        validator = GraphValidator()
+        
+        # Test various case variants for mermaid
+        viz_mermaid = validator.generate_visualization(graph, output_format="Mermaid")
+        assert "graph TD" in viz_mermaid
+        
+        viz_mermaid_upper = validator.generate_visualization(graph, output_format="MERMAID")
+        assert "graph TD" in viz_mermaid_upper
+        
+        # Test various case variants for dot
+        viz_dot = validator.generate_visualization(graph, output_format="DOT")
+        assert "digraph DependencyGraph" in viz_dot
+        
+        viz_dot_mixed = validator.generate_visualization(graph, output_format="Dot")
+        assert "digraph DependencyGraph" in viz_dot_mixed
+        
+        # Test with leading/trailing whitespace
+        viz_space = validator.generate_visualization(graph, output_format="  mermaid  ")
+        assert "graph TD" in viz_space
+
+    def test_graphviz_escapes_quotes_in_task_ids(self):
+        """Test that Graphviz generation escapes double quotes in task IDs."""
+        graph = DependencyGraph()
+        graph.add_task('task-with-"quotes"', set())
+        graph.add_task('dependent-"task"', {'task-with-"quotes"'})
+
+        validator = GraphValidator()
+        viz = validator.generate_visualization(graph, output_format="dot")
+        
+        # Verify the generated DOT is valid and contains escaped quotes
+        assert "digraph DependencyGraph" in viz
+        assert '\\"' in viz  # Escaped quotes should be present
+        # The task IDs should appear with escaped quotes
+        assert 'task-with-\\"quotes\\"' in viz or 'task-with-"quotes"' not in viz
+
 
 class TestIntegration:
     """Integration tests for complete validation workflows."""
