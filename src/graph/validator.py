@@ -25,8 +25,8 @@ class ValidationReport:
         errors: List of error messages (critical issues)
         warnings: List of warning messages (potential issues)
         cycles: List of detected cycles, each represented as a list of task IDs
-        missing_refs: List of task IDs referenced as dependencies but not defined
-        orphaned_tasks: List of task IDs that cannot reach completion
+        missing_refs: Set of task IDs referenced as dependencies but not defined
+        orphaned_tasks: Set of task IDs that cannot reach completion
     """
 
     is_valid: bool = True
