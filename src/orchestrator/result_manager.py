@@ -6,6 +6,7 @@ of task execution results with structured metadata tracking.
 
 import csv
 import json
+import threading
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
@@ -49,6 +50,7 @@ class ResultManager:
         self.results: dict[str, TaskResult] = {}
         self.success_count: int = 0
         self.failure_count: int = 0
+        self._lock = threading.Lock()
 
     def add_result(self, result: TaskResult) -> None:
         """Add a task result to storage and update statistics.
@@ -56,12 +58,13 @@ class ResultManager:
         Args:
             result: TaskResult to store
         """
-        self.results[result.task_id] = result
+        with self._lock:
+            self.results[result.task_id] = result
 
-        if result.status == "completed":
-            self.success_count += 1
-        elif result.status == "failed":
-            self.failure_count += 1
+            if result.status == "completed":
+                self.success_count += 1
+            elif result.status == "failed":
+                self.failure_count += 1
 
     def get_result(self, task_id: str) -> TaskResult | None:
         """Retrieve a specific task result by ID.
