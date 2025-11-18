@@ -24,9 +24,6 @@ class DependencyParser:
         r"Depends on #(\d+)",
         r"Blocked by #(\d+)",
         r"Requires #(\d+)",
-        r"depends on #(\d+)",  # lowercase variant
-        r"blocked by #(\d+)",  # lowercase variant
-        r"requires #(\d+)",  # lowercase variant
     ]
 
     def __init__(self):
