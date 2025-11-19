@@ -77,6 +77,10 @@ def configure_logging(level: str = "INFO", json_logs: bool = True) -> None:
             ),
         )
 
+    # Reset structlog to clear any cached configuration
+    # This allows reconfiguration (e.g., switching JSON/console modes)
+    structlog.reset_defaults()
+
     # Configure structlog
     structlog.configure(
         processors=processors,
