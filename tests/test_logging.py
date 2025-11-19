@@ -81,8 +81,15 @@ class TestContextBinding:
         logger.info("test_event")
 
         # Verify correlation_id is in the log context
-        # Note: This is a simplified test; in practice, you'd check JSON output
         assert len(caplog.records) > 0
+        record = caplog.records[0]
+        
+        # Check if correlation_id is present as an attribute or in the message
+        if hasattr(record, "correlation_id"):
+            assert record.correlation_id == "test-correlation-id"
+        else:
+            # Fallback: check if it appears in the formatted message
+            assert "test-correlation-id" in record.getMessage()
 
     def test_unbind_correlation_id(self, caplog):
         """Test unbinding the correlation ID from the logging context."""
@@ -96,6 +103,22 @@ class TestContextBinding:
         logger.info("without_correlation")
 
         assert len(caplog.records) == 2
+        
+        # First record should have correlation_id
+        first_record = caplog.records[0]
+        if hasattr(first_record, "correlation_id"):
+            assert first_record.correlation_id == "test-correlation-id"
+        else:
+            assert "test-correlation-id" in first_record.getMessage()
+        
+        # Second record should NOT have correlation_id
+        second_record = caplog.records[1]
+        if hasattr(second_record, "correlation_id"):
+            # If attribute exists, it should be None or not equal to our ID
+            assert second_record.correlation_id != "test-correlation-id"
+        else:
+            # If no attribute, the ID should not appear in the message
+            assert "test-correlation-id" not in second_record.getMessage()
 
     def test_bind_context_multiple_variables(self, caplog):
         """Test binding multiple context variables."""
@@ -106,6 +129,28 @@ class TestContextBinding:
         logger.info("task_started")
 
         assert len(caplog.records) > 0
+        record = caplog.records[0]
+        
+        # Check if context variables are present as attributes or in the message
+        message = record.getMessage()
+        
+        # Check task_id
+        if hasattr(record, "task_id"):
+            assert record.task_id == "task-1"
+        else:
+            assert "task-1" in message
+        
+        # Check agent_id
+        if hasattr(record, "agent_id"):
+            assert record.agent_id == 5
+        else:
+            assert "5" in message
+        
+        # Check status
+        if hasattr(record, "status"):
+            assert record.status == "running"
+        else:
+            assert "running" in message
 
     def test_unbind_context_specific_keys(self, caplog):
         """Test unbinding specific context variables."""
