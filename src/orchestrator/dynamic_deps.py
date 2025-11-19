@@ -200,7 +200,7 @@ class DynamicDependencyManager:
             except CycleDetectedError as e:
                 # Cycle detected across the batch
                 error_msg = f"Adding task batch would create a cycle in the dependency graph: {e}"
-                logger.error(
+                logger.exception(
                     "cycle_detected_in_batch",
                     task_count=len(normalized_tasks),
                     task_ids=list(normalized_tasks.keys()),
@@ -211,7 +211,7 @@ class DynamicDependencyManager:
             # Phase 3: Validation passed - now safely add tasks to real graph
             # Save original state in case we need to rollback
             original_graph_state = self.dep_graph.copy()
-            original_is_built = self.dep_graph._is_built
+            original_is_built = self.dep_graph.is_built
 
             try:
                 # Add all validated tasks to the real dependency graph
@@ -230,7 +230,7 @@ class DynamicDependencyManager:
 
             except Exception as e:
                 # Something went wrong during mutation/rebuild - restore original state
-                logger.error(
+                logger.exception(
                     "error_during_graph_mutation_restoring_state",
                     task_count=len(new_tasks),
                     error=str(e),
@@ -238,14 +238,15 @@ class DynamicDependencyManager:
 
                 # Restore original graph state
                 self.dep_graph.graph = original_graph_state.graph
-                self.dep_graph._is_built = original_is_built
+                self.dep_graph.set_built_state(original_is_built)
                 self.dep_graph.sorter = original_graph_state.sorter
 
                 logger.info("graph_state_restored_after_error")
 
                 # Re-raise as DynamicTaskRegistrationError
+                msg = f"Failed to add tasks to graph: {e}"
                 raise DynamicTaskRegistrationError(
-                    f"Failed to add tasks to graph: {e}",
+                    msg,
                 ) from e
 
             # Queue tasks for execution
@@ -285,27 +286,30 @@ class DynamicDependencyManager:
         """
         return not self.new_tasks_queue.empty()
 
-    async def get_next_task(self, timeout: float = 1.0) -> tuple[str, dict[str, Any]] | None:
+    async def get_next_task(
+        self, timeout_seconds: float = 1.0,
+    ) -> tuple[str, dict[str, Any]] | None:
         """Get the next task from the queue.
 
         Args:
-            timeout: Maximum time to wait for a task in seconds
+            timeout_seconds: Maximum time to wait for a task in seconds
 
         Returns:
             Tuple of (task_id, task_data) or None if timeout reached
 
         Example:
-            >>> task = await manager.get_next_task(timeout=2.0)
+            >>> task = await manager.get_next_task(timeout_seconds=2.0)
             >>> if task:
             ...     task_id, task_data = task
             ...     print(f"Got task: {task_id}")
         """
         try:
-            task_id, task_data = await asyncio.wait_for(
-                self.new_tasks_queue.get(),
-                timeout=timeout,
-            )
-
+            async with asyncio.timeout(timeout_seconds):
+                task_id, task_data = await self.new_tasks_queue.get()
+        except TimeoutError:
+            logger.debug("no_dynamic_tasks_available", timeout=timeout_seconds)
+            return None
+        else:
             logger.debug(
                 "dynamic_task_retrieved_from_queue",
                 task_id=task_id,
@@ -313,10 +317,6 @@ class DynamicDependencyManager:
             )
 
             return (task_id, task_data)
-
-        except TimeoutError:
-            logger.debug("no_dynamic_tasks_available", timeout=timeout)
-            return None
 
 
 class TaskExecutionContext:

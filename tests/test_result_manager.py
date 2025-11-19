@@ -202,7 +202,10 @@ class TestResultManager:
         assert summary["average_duration_seconds"] == 0.0
 
     def test_get_summary_with_results(
-        self, result_manager, sample_task_result, sample_failed_result
+        self,
+        result_manager,
+        sample_task_result,
+        sample_failed_result,
     ):
         """Test summary generation with results."""
         result_manager.add_result(sample_task_result)

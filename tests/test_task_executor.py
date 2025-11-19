@@ -71,7 +71,9 @@ class TestTaskExecutorInit:
     """Tests for TaskExecutor initialization."""
 
     def test_init_creates_semaphore_with_correct_value(
-        self, mock_agent_pool, dependency_graph,
+        self,
+        mock_agent_pool,
+        dependency_graph,
     ):
         """Test that semaphore is created with pool size."""
         executor = TaskExecutor(mock_agent_pool, dependency_graph)
@@ -182,7 +184,9 @@ class TestExecuteTask:
 
     @pytest.mark.asyncio
     async def test_execute_task_releases_agent_on_exception(
-        self, task_executor, mock_agent_pool,
+        self,
+        task_executor,
+        mock_agent_pool,
     ):
         """Test that agent is released even if execution fails."""
         with patch.object(
@@ -205,7 +209,9 @@ class TestExecuteTask:
 
     @pytest.mark.asyncio
     async def test_concurrent_task_execution_respects_semaphore(
-        self, mock_agent_pool, dependency_graph,
+        self,
+        mock_agent_pool,
+        dependency_graph,
     ):
         """Test that semaphore limits concurrent execution."""
         # Create executor with max 2 concurrent tasks
@@ -256,10 +262,7 @@ class TestExecuteTask:
             mock_get_executor.return_value = mock_executor
 
             # Execute 4 tasks concurrently
-            tasks = [
-                {"task_id": f"task-{i}", "prompt": f"Task {i}"}
-                for i in range(4)
-            ]
+            tasks = [{"task_id": f"task-{i}", "prompt": f"Task {i}"} for i in range(4)]
 
             results = await asyncio.gather(
                 *[executor.execute_task(t["task_id"], t) for t in tasks],
@@ -275,7 +278,9 @@ class TestWaitForIdleAgent:
 
     @pytest.mark.asyncio
     async def test_wait_returns_immediately_when_agent_available(
-        self, task_executor, mock_agent_pool,
+        self,
+        task_executor,
+        mock_agent_pool,
     ):
         """Test that method returns immediately if agent is available."""
         agent = await task_executor._wait_for_idle_agent()  # noqa: SLF001
@@ -319,7 +324,9 @@ class TestGetOrCreateExecutor:
         assert task_executor.agent_executors[agent.id] == executor
 
     def test_returns_cached_executor_for_existing_agent(
-        self, task_executor, mock_agent_pool,
+        self,
+        task_executor,
+        mock_agent_pool,
     ):
         """Test that cached executor is returned for same agent."""
         agent = mock_agent_pool.agents[0]
@@ -384,7 +391,9 @@ class TestGetStats:
     """Tests for statistics retrieval."""
 
     def test_get_stats_returns_correct_counts(
-        self, task_executor, mock_agent_pool,  # noqa: ARG002
+        self,
+        task_executor,
+        mock_agent_pool,  # noqa: ARG002
     ):
         """Test that statistics reflect current state."""
         # Add some active tasks and results
