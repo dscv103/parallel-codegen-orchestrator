@@ -4,12 +4,13 @@ This module implements configuration models using Pydantic for parsing and
 validation of YAML/JSON configuration files with environment variable overrides.
 """
 
-import os
+import json
 from pathlib import Path
 
 import structlog
 import yaml
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, SecretStr, ValidationError, field_validator
+from pydantic_settings import BaseSettings
 
 # Initialize logger
 logger = structlog.get_logger(__name__)
@@ -27,11 +28,11 @@ class GitHubConfig(BaseModel):
         token: GitHub personal access token or OAuth token
         organization: GitHub organization name
         repository: Repository name in format 'owner/repo'
-        project_id: Optional Projects v2 ID (format: PVT_...)
+        project_number: Optional Projects v2 number
         default_branch: Default branch for creating new branches
     """
 
-    token: str = Field(
+    token: SecretStr = Field(
         description="GitHub personal access token",
         min_length=1,
     )
@@ -41,11 +42,11 @@ class GitHubConfig(BaseModel):
     )
     repository: str = Field(
         description="Repository in format 'owner/repo'",
-        pattern=r"^[\w.-]+/[\w.-]+$",
     )
-    project_id: str | None = Field(
+    project_number: int | None = Field(
         default=None,
-        description="GitHub Projects v2 ID",
+        description="GitHub Projects v2 number",
+        gt=0,
     )
     default_branch: str = Field(
         default="main",
@@ -54,7 +55,7 @@ class GitHubConfig(BaseModel):
 
     @field_validator("token")
     @classmethod
-    def validate_token(cls, v: str) -> str:
+    def validate_token(cls, v: SecretStr) -> SecretStr:
         """Validate that the token is not a placeholder.
 
         Args:
@@ -66,7 +67,8 @@ class GitHubConfig(BaseModel):
         Raises:
             ValueError: If token is a placeholder
         """
-        if "your_" in v or v == "":
+        token_str = v.get_secret_value()
+        if "your_" in token_str or token_str == "":
             msg = "GitHub token must be set (not a placeholder)"
             raise ValueError(msg)
         return v
@@ -107,7 +109,7 @@ class CodegenConfig(BaseModel):
         description="Codegen organization ID",
         min_length=1,
     )
-    api_token: str = Field(
+    api_token: SecretStr = Field(
         description="Codegen API token",
         min_length=1,
     )
@@ -116,10 +118,10 @@ class CodegenConfig(BaseModel):
         description="Custom Codegen API base URL",
     )
 
-    @field_validator("org_id", "api_token")
+    @field_validator("org_id")
     @classmethod
-    def validate_not_placeholder(cls, v: str) -> str:
-        """Validate that configuration values are not placeholders.
+    def validate_org_id(cls, v: str) -> str:
+        """Validate that org_id is not a placeholder.
 
         Args:
             v: The value to validate
@@ -133,6 +135,53 @@ class CodegenConfig(BaseModel):
         if "your-" in v or "your_" in v or v == "":
             msg = "Codegen configuration must be set (not a placeholder)"
             raise ValueError(msg)
+        return v
+
+    @field_validator("api_token")
+    @classmethod
+    def validate_api_token(cls, v: SecretStr) -> SecretStr:
+        """Validate that api_token is not a placeholder.
+
+        Args:
+            v: The value to validate
+
+        Returns:
+            The validated value
+
+        Raises:
+            ValueError: If value is a placeholder
+        """
+        token_str = v.get_secret_value()
+        if "your-" in token_str or "your_" in token_str or token_str == "":
+            msg = "Codegen configuration must be set (not a placeholder)"
+            raise ValueError(msg)
+        return v
+
+    @field_validator("base_url")
+    @classmethod
+    def validate_base_url(cls, v: str | None) -> str | None:
+        """Validate and normalize base URL.
+
+        Args:
+            v: The base URL to validate
+
+        Returns:
+            The validated and normalized base URL
+
+        Raises:
+            ValueError: If URL scheme is invalid
+        """
+        if v is None:
+            return v
+
+        # Strip trailing slash
+        v = v.rstrip("/")
+
+        # Validate scheme
+        if not v.startswith(("http://", "https://")):
+            msg = "Base URL must start with http:// or https://"
+            raise ValueError(msg)
+
         return v
 
     model_config = {"str_strip_whitespace": True}
@@ -199,7 +248,7 @@ class AutomationConfig(BaseModel):
     )
 
 
-class OrchestratorConfig(BaseModel):
+class OrchestratorConfig(BaseSettings):
     """Main orchestrator configuration combining all settings.
 
     Attributes:
@@ -217,8 +266,31 @@ class OrchestratorConfig(BaseModel):
     logging_level: str = Field(
         default="INFO",
         description="Logging level",
-        pattern=r"^(DEBUG|INFO|WARNING|ERROR|CRITICAL)$",
     )
+
+    model_config = {
+        "env_nested_delimiter": "__",
+        "env_prefix": "",
+        "case_sensitive": False,
+    }
+
+    @field_validator("logging_level")
+    @classmethod
+    def validate_logging_level(cls, v: str) -> str:
+        """Validate and normalize logging level."""
+        if not isinstance(v, str):
+            msg = "Logging level must be a string"
+            raise ValueError(msg)
+
+        # Convert to uppercase for case-insensitive validation
+        level = v.upper()
+        valid_levels = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
+
+        if level not in valid_levels:
+            msg = f"logging_level must be one of {valid_levels}, got: {v}"
+            raise ValueError(msg)
+
+        return level
 
     @classmethod
     def from_yaml(cls, path: str | Path) -> "OrchestratorConfig":
@@ -251,10 +323,7 @@ class OrchestratorConfig(BaseModel):
                 msg = "Configuration file is empty"
                 raise ValueError(msg)
 
-            # Apply environment variable overrides
-            config_data = cls._apply_env_overrides(config_data)
-
-            # Parse and validate configuration
+            # Parse and validate configuration (env vars handled by BaseSettings)
             config = cls(**config_data)
         except yaml.YAMLError as e:
             logger.exception("yaml_parse_error", error=str(e), path=str(config_path))
@@ -269,69 +338,7 @@ class OrchestratorConfig(BaseModel):
 
             return config
 
-    @classmethod
-    def _apply_env_overrides(cls, config_data: dict) -> dict:
-        """Apply environment variable overrides to configuration.
 
-        Environment variables follow the pattern: ORCHESTRATOR_<SECTION>_<KEY>
-        Example: ORCHESTRATOR_GITHUB_TOKEN, ORCHESTRATOR_AGENT_MAX_CONCURRENT
-
-        Args:
-            config_data: Base configuration dictionary from file
-
-        Returns:
-            Configuration dictionary with environment overrides applied
-        """
-        env_overrides = {
-            # GitHub configuration
-            ("github", "token"): "ORCHESTRATOR_GITHUB_TOKEN",
-            ("github", "organization"): "ORCHESTRATOR_GITHUB_ORGANIZATION",
-            ("github", "repository"): "ORCHESTRATOR_GITHUB_REPOSITORY",
-            ("github", "project_id"): "ORCHESTRATOR_GITHUB_PROJECT_ID",
-            ("github", "default_branch"): "ORCHESTRATOR_GITHUB_DEFAULT_BRANCH",
-            # Codegen configuration
-            ("codegen", "org_id"): "ORCHESTRATOR_CODEGEN_ORG_ID",
-            ("codegen", "api_token"): "ORCHESTRATOR_CODEGEN_API_TOKEN",
-            ("codegen", "base_url"): "ORCHESTRATOR_CODEGEN_BASE_URL",
-            # Agent configuration
-            ("agent", "max_concurrent_agents"): "ORCHESTRATOR_AGENT_MAX_CONCURRENT",
-            ("agent", "task_timeout_seconds"): "ORCHESTRATOR_AGENT_TASK_TIMEOUT",
-            ("agent", "retry_attempts"): "ORCHESTRATOR_AGENT_RETRY_ATTEMPTS",
-            ("agent", "retry_delay_seconds"): "ORCHESTRATOR_AGENT_RETRY_DELAY",
-            # Automation configuration
-            ("automation", "auto_merge_on_success"): "ORCHESTRATOR_AUTO_MERGE",
-            ("automation", "post_results_as_comment"): "ORCHESTRATOR_POST_RESULTS",
-            ("automation", "update_issue_status"): "ORCHESTRATOR_UPDATE_STATUS",
-            ("automation", "status_label_prefix"): "ORCHESTRATOR_STATUS_PREFIX",
-            # Logging
-            ("logging_level",): "ORCHESTRATOR_LOGGING_LEVEL",
-        }
-
-        for path, env_var in env_overrides.items():
-            value = os.environ.get(env_var)
-            if value is not None:
-                # Navigate to nested config section
-                current = config_data
-                for key in path[:-1]:
-                    if key not in current:
-                        current[key] = {}
-                    current = current[key]
-
-                # Convert string values to appropriate types
-                final_key = path[-1]
-                if env_var.endswith(("_TIMEOUT", "_DELAY", "_ATTEMPTS", "_CONCURRENT")):
-                    value = int(value)
-                elif env_var.endswith(("_MERGE", "_RESULTS", "_STATUS")):
-                    value = value.lower() in ("true", "1", "yes")
-
-                current[final_key] = value
-                logger.debug(
-                    "env_override_applied",
-                    env_var=env_var,
-                    config_path=".".join(path),
-                )
-
-        return config_data
 
     def validate_config(self) -> list[str]:
         """Validate configuration and return list of warnings.
@@ -342,10 +349,10 @@ class OrchestratorConfig(BaseModel):
         warnings = []
 
         # Check for development/example tokens
-        if self.github.token.startswith("ghp_example"):
+        if self.github.token.get_secret_value().startswith("ghp_example"):
             warnings.append("GitHub token appears to be an example/placeholder")
 
-        if self.codegen.api_token.startswith("example_"):
+        if self.codegen.api_token.get_secret_value().startswith("example_"):
             warnings.append("Codegen API token appears to be an example/placeholder")
 
         # Warn about security settings
@@ -369,11 +376,180 @@ class OrchestratorConfig(BaseModel):
         return warnings
 
 
-# Export main configuration class
+# Global singleton instance
+_config_instance: OrchestratorConfig | None = None
+
+
+def load_config(config_path: str | Path | None = None) -> OrchestratorConfig:
+    """Load configuration from file with environment variable overrides.
+
+    Args:
+        config_path: Path to configuration file (YAML or JSON). If None, searches for
+                    config.yaml, config.yml, or config.json in current directory.
+
+    Returns:
+        Loaded and validated configuration with env var overrides
+
+    Raises:
+        FileNotFoundError: If config file doesn't exist
+        yaml.YAMLError: If YAML parsing fails
+        json.JSONDecodeError: If JSON parsing fails
+        ValueError: If file format is unsupported
+        ValidationError: If configuration validation fails
+    """
+    from typing import Any
+
+    from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
+
+    # Search for default config file if none specified
+    if config_path is None:
+        default_paths = [
+            Path("config.yaml"),
+            Path("config.yml"),
+            Path("config.json"),
+        ]
+
+        for path in default_paths:
+            if path.exists():
+                config_path = path
+                break
+        else:
+            raise FileNotFoundError(
+                "No configuration file found. Searched for: " +
+                ", ".join(str(p) for p in default_paths),
+            )
+    else:
+        config_path = Path(config_path)
+
+        if not config_path.exists():
+            msg = f"Configuration file not found: {config_path}"
+            raise FileNotFoundError(msg)
+
+    # Determine file format and parse
+    suffix = config_path.suffix.lower()
+
+    if suffix in {".yaml", ".yml"}:
+        with config_path.open("r") as f:
+            config_data = yaml.safe_load(f)
+    elif suffix == ".json":
+        with config_path.open("r") as f:
+            config_data = json.load(f)
+    else:
+        msg = f"Unsupported config file format: {suffix}"
+        raise ValueError(msg)
+
+    # Create a custom settings source for the file data
+    class FileSettingsSource(PydanticBaseSettingsSource):
+        def get_field_value(self, field_info, field_name: str) -> tuple[Any, str, bool]:
+            # Navigate nested config data
+            current = config_data
+            field_path = field_name.split("__")
+
+            try:
+                for part in field_path:
+                    current = current[part]
+                return current, field_name, False
+            except (KeyError, TypeError):
+                return None, field_name, False
+
+        def prepare_field_value(self, field_name: str, field_value: Any, value_source: str) -> Any:
+            return field_value
+
+        def __call__(self) -> dict[str, Any]:
+            return config_data
+
+    # Create a custom config class with file data as a settings source
+    class FileBasedConfig(OrchestratorConfig):
+        model_config = SettingsConfigDict(
+            env_nested_delimiter="__",
+            env_prefix="",
+            case_sensitive=False,
+        )
+
+        @classmethod
+        def settings_customise_sources(
+            cls,
+            settings_cls: type[BaseSettings],
+            init_settings: PydanticBaseSettingsSource,
+            env_settings: PydanticBaseSettingsSource,
+            dotenv_settings: PydanticBaseSettingsSource,
+            file_secret_settings: PydanticBaseSettingsSource,
+        ) -> tuple[PydanticBaseSettingsSource, ...]:
+            # Order: init_settings, env_settings, file_settings, dotenv_settings, file_secret_settings
+            # Environment variables should have higher priority than file
+            return (
+                init_settings,
+                env_settings,
+                FileSettingsSource(settings_cls),
+                dotenv_settings,
+                file_secret_settings,
+            )
+
+    # Create configuration - environment variables will override file values
+    try:
+        return FileBasedConfig()
+    except ValidationError as e:
+        msg = f"Configuration validation failed: {e}"
+        raise ValueError(msg) from e
+
+
+def get_config(config_path: str | Path | None = None, *, reload: bool = False) -> OrchestratorConfig:
+    """Get configuration instance (singleton pattern).
+
+    Args:
+        config_path: Path to configuration file. If None, uses default locations.
+        reload: If True, force reload from file even if cached
+
+    Returns:
+        Configuration instance
+
+    Raises:
+        FileNotFoundError: If no config file found in default locations
+    """
+    global _config_instance
+
+    # Return cached instance if available and not reloading
+    if _config_instance is not None and not reload:
+        return _config_instance
+
+    # Determine config path
+    if config_path is None:
+        # Try default locations
+        default_paths = [
+            Path("config.yaml"),
+            Path("config.yml"),
+            Path("config.json"),
+        ]
+
+        config_path = None
+        for path in default_paths:
+            if path.exists():
+                config_path = path
+                break
+
+        if config_path is None:
+            msg = "No configuration file found in default locations"
+            raise FileNotFoundError(msg)
+
+    # Load and cache configuration
+    _config_instance = load_config(config_path)
+    return _config_instance
+
+
+def reset_config() -> None:
+    """Reset cached configuration instance."""
+    global _config_instance
+    _config_instance = None
+
+
+# Export main configuration class and functions
 __all__ = [
     "AgentConfig",
     "AutomationConfig",
     "CodegenConfig",
     "GitHubConfig",
     "OrchestratorConfig",
+    "get_config",
+    "load_config",
+    "reset_config",
 ]
