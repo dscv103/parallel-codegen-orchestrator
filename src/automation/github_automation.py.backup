@@ -336,201 +336,144 @@ class GitHubAutomationHandler:
         """
         comment_text = self._format_results_comment(results)
 
-        # Handle single issue posting
+        # Post to issue if issue_number provided
         if "issue_number" in context:
-            await self._post_to_single_issue(
-                context["issue_number"],
-                comment_text,
-                summary,
-            )
-
-        # Handle single PR posting
-        if "pr_number" in context:
-            await self._post_to_single_pr(context["pr_number"], comment_text, summary)
-
-        # Handle batch issue posting
-        if "issue_numbers" in context:
-            await self._post_to_multiple_issues(
-                context["issue_numbers"],
-                comment_text,
-                summary,
-            )
-
-        # Handle batch PR posting
-        if "pr_numbers" in context:
-            await self._post_to_multiple_prs(
-                context["pr_numbers"],
-                comment_text,
-                summary,
-            )
-
-    async def _post_to_single_issue(
-        self,
-        issue_number: int,
-        comment_text: str,
-        summary: dict[str, Any],
-    ) -> None:
-        """Post comment to a single issue."""
-        try:
-            logger.info(
-                "posting_comment_to_issue",
-                issue_number=issue_number,
-                repo_name=self.repo_name,
-            )
-
-            self.github.post_comment(
-                repo_name=self.repo_name,
-                issue_number=issue_number,
-                comment=comment_text,
-            )
-
-            summary["comments_posted"] += 1
-            logger.info("comment_posted_to_issue_success", issue_number=issue_number)
-
-        except GithubException as e:
-            self._handle_github_error(e, f"issue #{issue_number}", summary, issue_number)
-        except (OSError, ValueError) as e:
-            self._handle_unexpected_error(e, f"issue #{issue_number}", summary, issue_number)
-
-    async def _post_to_single_pr(
-        self,
-        pr_number: int,
-        comment_text: str,
-        summary: dict[str, Any],
-    ) -> None:
-        """Post comment to a single PR."""
-        try:
-            logger.info(
-                "posting_comment_to_pr",
-                pr_number=pr_number,
-                repo_name=self.repo_name,
-            )
-
-            self.github.post_comment(
-                repo_name=self.repo_name,
-                issue_number=pr_number,  # PRs use issue comment API
-                comment=comment_text,
-            )
-
-            summary["comments_posted"] += 1
-            logger.info("comment_posted_to_pr_success", pr_number=pr_number)
-
-        except GithubException as e:
-            self._handle_github_error(e, f"PR #{pr_number}", summary, pr_number)
-        except (OSError, ValueError) as e:
-            self._handle_unexpected_error(e, f"PR #{pr_number}", summary, pr_number)
-
-    async def _post_to_multiple_issues(
-        self,
-        issue_numbers: list[int],
-        comment_text: str,
-        summary: dict[str, Any],
-    ) -> None:
-        """Post comment to multiple issues."""
-        for issue_number in issue_numbers:
             try:
+                issue_number = context["issue_number"]
+                logger.info(
+                    "posting_comment_to_issue",
+                    issue_number=issue_number,
+                    repo_name=self.repo_name,
+                )
+
                 self.github.post_comment(
                     repo_name=self.repo_name,
                     issue_number=issue_number,
                     comment=comment_text,
                 )
-                summary["comments_posted"] += 1
 
-            except GithubException as e:
-                self._handle_batch_github_error(e, f"issue #{issue_number}", summary, issue_number)
-            except (OSError, ValueError) as e:
-                self._handle_batch_unexpected_error(
-                    e,
-                    f"issue #{issue_number}",
-                    summary,
-                    issue_number,
+                summary["comments_posted"] += 1
+                logger.info(
+                    "comment_posted_to_issue_success",
+                    issue_number=issue_number,
                 )
 
-    async def _post_to_multiple_prs(
-        self,
-        pr_numbers: list[int],
-        comment_text: str,
-        summary: dict[str, Any],
-    ) -> None:
-        """Post comment to multiple PRs."""
-        for pr_number in pr_numbers:
+            except GithubException as e:
+                error_msg = f"Failed to post comment to issue #{issue_number}: {e}"
+                logger.exception(
+                    "comment_posting_failed",
+                    issue_number=issue_number,
+                    error=str(e),
+                    status_code=e.status,
+                )
+                summary["errors"].append(error_msg)
+
+            except (OSError, ValueError) as e:
+                error_msg = f"Unexpected error posting to issue #{issue_number}: {e}"
+                logger.exception(
+                    "comment_posting_unexpected_error",
+                    issue_number=issue_number,
+                    error=str(e),
+                )
+                summary["errors"].append(error_msg)
+
+        # Post to PR if pr_number provided
+        if "pr_number" in context:
             try:
+                pr_number = context["pr_number"]
+                logger.info(
+                    "posting_comment_to_pr",
+                    pr_number=pr_number,
+                    repo_name=self.repo_name,
+                )
+
                 self.github.post_comment(
                     repo_name=self.repo_name,
-                    issue_number=pr_number,
+                    issue_number=pr_number,  # PRs use issue comment API
                     comment=comment_text,
                 )
+
                 summary["comments_posted"] += 1
+                logger.info(
+                    "comment_posted_to_pr_success",
+                    pr_number=pr_number,
+                )
+
             except GithubException as e:
-                self._handle_batch_github_error(e, f"PR #{pr_number}", summary, pr_number)
+                error_msg = f"Failed to post comment to PR #{pr_number}: {e}"
+                logger.exception(
+                    "comment_posting_failed",
+                    pr_number=pr_number,
+                    error=str(e),
+                    status_code=e.status,
+                )
+                summary["errors"].append(error_msg)
+
             except (OSError, ValueError) as e:
-                self._handle_batch_unexpected_error(e, f"PR #{pr_number}", summary, pr_number)
+                error_msg = f"Unexpected error posting to PR #{pr_number}: {e}"
+                logger.exception(
+                    "comment_posting_unexpected_error",
+                    pr_number=pr_number,
+                    error=str(e),
+                )
+                summary["errors"].append(error_msg)
 
-    def _handle_github_error(
-        self,
-        e: GithubException,
-        target: str,
-        summary: dict[str, Any],
-        number: int,
-    ) -> None:
-        """Handle GitHub API errors."""
-        error_msg = f"Failed to post comment to {target}: {e}"
-        logger.exception(
-            "comment_posting_failed",
-            issue_number=number,
-            error=str(e),
-            status_code=e.status,
-        )
-        summary["errors"].append(error_msg)
+        # Batch posting to multiple issues
+        if "issue_numbers" in context:
+            for issue_number in context["issue_numbers"]:
+                try:
+                    self.github.post_comment(
+                        repo_name=self.repo_name,
+                        issue_number=issue_number,
+                        comment=comment_text,
+                    )
+                    summary["comments_posted"] += 1
 
-    def _handle_unexpected_error(
-        self,
-        e: Exception,
-        target: str,
-        summary: dict[str, Any],
-        number: int,
-    ) -> None:
-        """Handle unexpected errors."""
-        error_msg = f"Unexpected error posting to {target}: {e}"
-        logger.exception(
-            "comment_posting_unexpected_error",
-            issue_number=number,
-            error=str(e),
-        )
-        summary["errors"].append(error_msg)
+                except GithubException as e:
+                    error_msg = f"Failed to post to issue #{issue_number}: {e}"
+                    logger.exception(
+                        "batch_comment_posting_failed",
+                        issue_number=issue_number,
+                        error=str(e),
+                        status_code=e.status,
+                    )
+                    summary["errors"].append(error_msg)
+                except Exception as e:
+                    error_msg = f"Unexpected error posting to issue #{issue_number}: {e}"
+                    logger.exception(
+                        "batch_comment_posting_unexpected_error",
+                        issue_number=issue_number,
+                        error=str(e),
+                    )
+                    summary["errors"].append(error_msg)
 
-    def _handle_batch_github_error(
-        self,
-        e: GithubException,
-        target: str,
-        summary: dict[str, Any],
-        number: int,
-    ) -> None:
-        """Handle GitHub API errors in batch operations."""
-        error_msg = f"Failed to post to {target}: {e}"
-        logger.exception(
-            "batch_comment_posting_failed",
-            issue_number=number,
-            error=str(e),
-            status_code=e.status,
-        )
-        summary["errors"].append(error_msg)
-
-    def _handle_batch_unexpected_error(
-        self,
-        e: Exception,
-        target: str,
-        summary: dict[str, Any],
-        number: int,
-    ) -> None:
-        """Handle unexpected errors in batch operations."""
-        error_msg = f"Unexpected error posting to {target}: {e}"
-        logger.exception(
-            "batch_comment_posting_unexpected_error",
-            issue_number=number,
-            error=str(e),
-        )
-        summary["errors"].append(error_msg)
+        # Batch posting to multiple PRs (using issue comment API)
+        if "pr_numbers" in context:
+            for pr_number in context["pr_numbers"]:
+                try:
+                    self.github.post_comment(
+                        repo_name=self.repo_name,
+                        issue_number=pr_number,
+                        comment=comment_text,
+                    )
+                    summary["comments_posted"] += 1
+                except GithubException as e:
+                    error_msg = f"Failed to post to PR #{pr_number}: {e}"
+                    logger.exception(
+                        "batch_comment_posting_failed",
+                        pr_number=pr_number,
+                        error=str(e),
+                        status_code=e.status,
+                    )
+                    summary["errors"].append(error_msg)
+                except Exception as e:
+                    error_msg = f"Unexpected error posting to PR #{pr_number}: {e}"
+                    logger.exception(
+                        "batch_comment_posting_unexpected_error",
+                        pr_number=pr_number,
+                        error=str(e),
+                    )
+                    summary["errors"].append(error_msg)
 
     def _determine_status_label(self, results: Sequence[TaskResult]) -> str:
         """Determine the appropriate status label based on task results.

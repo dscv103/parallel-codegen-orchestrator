@@ -11,6 +11,7 @@ from src.agents.agent_pool import AgentPool, ManagedAgent
 from src.agents.codegen_executor import CodegenExecutor, TaskResult
 from src.graph.dependency_graph import DependencyGraph
 from src.log_config import get_logger
+from src.orchestrator.retry import RetryConfig, execute_with_retry
 
 # Initialize logger
 logger = get_logger(__name__)
@@ -58,6 +59,7 @@ class TaskExecutor:
         dep_graph: DependencyGraph,
         timeout_seconds: int = 600,
         poll_interval_seconds: int = 2,
+        retry_config: RetryConfig | None = None,
     ):
         """Initialize the task executor.
 
@@ -66,18 +68,21 @@ class TaskExecutor:
             dep_graph: Dependency graph for task ordering
             timeout_seconds: Timeout for individual task execution (default: 600)
             poll_interval_seconds: Polling interval for task status (default: 2)
+            retry_config: Configuration for retry behavior (default: None, creates default config)
 
         Example:
             >>> executor = TaskExecutor(
             ...     agent_pool=pool,
             ...     dep_graph=graph,
-            ...     timeout_seconds=300
+            ...     timeout_seconds=300,
+            ...     retry_config=RetryConfig(max_attempts=3, base_delay_seconds=30)
             ... )
         """
         self.agent_pool = agent_pool
         self.dep_graph = dep_graph
         self.timeout_seconds = timeout_seconds
         self.poll_interval_seconds = poll_interval_seconds
+        self.retry_config = retry_config or RetryConfig()
 
         # Semaphore limits concurrent tasks to pool size
         self.semaphore = asyncio.Semaphore(agent_pool.max_agents)
@@ -93,6 +98,8 @@ class TaskExecutor:
             "task_executor_initialized",
             max_concurrent=agent_pool.max_agents,
             timeout_seconds=timeout_seconds,
+            retry_enabled=self.retry_config.enabled,
+            retry_attempts=self.retry_config.max_attempts,
         )
 
     def _get_or_create_executor(self, agent: ManagedAgent) -> CodegenExecutor:
@@ -169,8 +176,18 @@ class TaskExecutor:
                     # Get or create executor for this agent
                     executor = self._get_or_create_executor(agent)
 
-                    # Execute the task
-                    result = await executor.execute_task(task_data)
+                    # Execute the task with retry logic if enabled
+                    if self.retry_config.enabled:
+                        result = await execute_with_retry(
+                            task_id=task_id,
+                            func=executor.execute_task,
+                            max_attempts=self.retry_config.max_attempts,
+                            base_delay_seconds=self.retry_config.base_delay_seconds,
+                            task_data=task_data,
+                        )
+                    else:
+                        # Execute without retry
+                        result = await executor.execute_task(task_data)
 
                     # Store result
                     self.task_results[task_id] = result

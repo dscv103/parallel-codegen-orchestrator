@@ -175,6 +175,7 @@ Pre-commit hooks for local development (see below)
 ## Running Checks Locally
 
 ### Install Tools
+
 ```bash
 # Install Python tools
 pip install ruff mypy black isort pytest pytest-cov pytest-asyncio
@@ -188,50 +189,59 @@ pre-commit install
 ### Run Individual Checks
 
 **Ruff linter:**
+
 ```bash
 ruff check .
 ruff check . --fix  # Auto-fix issues
 ```
 
 **Ruff formatter:**
+
 ```bash
 ruff format .
 ruff format --check .  # Check only, no changes
 ```
 
 **Black formatter:**
+
 ```bash
 black .
 black --check .  # Check only
 ```
 
 **Import sorting:**
+
 ```bash
 isort .
 isort --check-only .  # Check only
 ```
 
 **Type checking:**
+
 ```bash
 mypy src/
 ```
 
 **Security scan:**
+
 ```bash
 bandit -r src/
 ```
 
 **YAML validation:**
+
 ```bash
 yamllint .
 ```
 
 **Run all tests:**
+
 ```bash
 pytest tests/ --cov=src --cov-report=html
 ```
 
 **Code complexity:**
+
 ```bash
 radon cc src/ -a  # Average complexity
 radon cc src/ -n C  # Functions with complexity > 10
@@ -239,6 +249,7 @@ radon mi src/  # Maintainability index
 ```
 
 ### Run All Checks
+
 ```bash
 # Using pre-commit (runs all configured hooks)
 pre-commit run --all-files
@@ -249,12 +260,14 @@ pre-commit run --all-files
 Pre-commit hooks run automatically before each commit to catch issues early.
 
 **Setup:**
+
 ```bash
 pip install pre-commit
 pre-commit install
 ```
 
 **Configured hooks:**
+
 1. Ruff (linter + formatter)
 2. Black (formatter)
 3. isort (import sorting)
@@ -266,6 +279,7 @@ pre-commit install
 9. ShellCheck (shell scripts)
 
 **Skip hooks temporarily:**
+
 ```bash
 git commit --no-verify
 ```
@@ -273,6 +287,7 @@ git commit --no-verify
 ## CI/CD Status Badges
 
 Add to README.md:
+
 ```markdown
 ![CI/CD Pipeline](https://github.com/dscv101/parallel-codegen-orchestrator/actions/workflows/ci.yml/badge.svg)
 ```
@@ -280,6 +295,7 @@ Add to README.md:
 ## Fixing Common Issues
 
 ### Ruff Errors
+
 ```bash
 # Auto-fix most issues
 ruff check . --fix
@@ -289,13 +305,16 @@ ruff format .
 ```
 
 ### Import Order Issues
+
 ```bash
 # Fix import sorting
 isort .
 ```
 
 ### Type Errors
+
 Review MyPy output and add type hints:
+
 ```python
 # Bad
 def process_task(task_id, config):
@@ -307,6 +326,7 @@ def process_task(task_id: str, config: dict[str, Any]) -> TaskResult:
 ```
 
 ### Test Failures
+
 ```bash
 # Run tests with verbose output
 pytest tests/ -vv
@@ -319,6 +339,7 @@ pytest tests/ --pdb
 ```
 
 ### Coverage Issues
+
 ```bash
 # See what's not covered
 pytest tests/ --cov=src --cov-report=html
@@ -330,7 +351,7 @@ open htmlcov/index.html
 The CI/CD pipeline is configured to match CodeRabbit's review settings:
 
 | Tool | CodeRabbit | CI/CD |
-|------|------------|-------|
+| ---- | ---------- | ----- |
 | Ruff | ✅ All rules | ✅ Same rules |
 | Type checking | ✅ Strict | ✅ MyPy strict |
 | Formatting | ✅ Black-style | ✅ Black + Ruff |
@@ -343,6 +364,7 @@ The CI/CD pipeline is configured to match CodeRabbit's review settings:
 ## Workflow Triggers
 
 The pipeline runs on:
+
 - **Push** to `main` or `develop`
 - **Pull requests** to `main` or `develop`
 - **Manual trigger** (workflow_dispatch)
@@ -350,6 +372,7 @@ The pipeline runs on:
 ## Artifacts
 
 The pipeline generates artifacts:
+
 - **Security Report**: Bandit JSON report
 - **Coverage Report**: HTML coverage report
 - **Test Results**: XML test results
@@ -359,6 +382,7 @@ Access artifacts from the Actions tab in GitHub.
 ## Required Status Checks
 
 Configure branch protection rules to require:
+
 - ✅ Code Quality Checks (critical)
 - ✅ YAML Validation (critical)
 - ⚠️ Security Scan (warning)
@@ -367,6 +391,7 @@ Configure branch protection rules to require:
 ## Performance
 
 Typical run times:
+
 - Code Quality: ~2-3 minutes
 - Security Scan: ~1-2 minutes
 - Tests: ~3-5 minutes
@@ -375,16 +400,20 @@ Typical run times:
 ## Troubleshooting
 
 ### Pipeline Fails on First Run
+
 Normal - no source code yet. Pipeline will pass once code is added.
 
 ### MyPy Errors on Third-party Libraries
+
 Already configured to ignore missing imports. If issues persist, add to `mypy.ini`:
+
 ```ini
 [mypy-library_name.*]
 ignore_missing_imports = True
 ```
 
 ### Pre-commit is Slow
+
 ```bash
 # Skip slow hooks during development
 SKIP=mypy git commit -m "message"
@@ -394,7 +423,9 @@ pre-commit uninstall
 ```
 
 ### False Positives in Security Scan
+
 Add `# nosec` comment with justification:
+
 ```python
 password = os.getenv("PASSWORD")  # nosec - from secure env var
 ```
