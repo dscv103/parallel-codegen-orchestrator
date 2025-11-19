@@ -11,6 +11,7 @@ from src.orchestrator.dynamic_deps import (
     TaskExecutionContext,
 )
 from src.orchestrator.orchestrator import OrchestrationError, TaskOrchestrator
+from src.orchestrator.progress import ProgressMonitor, ProgressSnapshot
 from src.orchestrator.result_manager import ResultManager, TaskResult
 from src.orchestrator.task_executor import TaskExecutor
 
@@ -18,6 +19,8 @@ __all__ = [
     "DynamicDependencyManager",
     "DynamicTaskRegistrationError",
     "OrchestrationError",
+    "ProgressMonitor",
+    "ProgressSnapshot",
     "ResultManager",
     "TaskExecutionContext",
     "TaskExecutor",
