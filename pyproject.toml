@@ -83,6 +83,62 @@ exclude_lines = [
 [tool.coverage.html]
 directory = "htmlcov"
 
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "C90", "I", "N", "D", "UP", "YTT", "ANN", "ASYNC", "S", "BLE", "B", "A", "COM", "C4", "DTZ", "T10", "EM", "ISC", "ICN", "G", "PIE", "T20", "PYI", "PT", "Q", "RSE", "RET", "SLF", "SLOT", "SIM", "TID", "TCH", "ARG", "PTH", "ERA", "PD", "PGH", "PL", "TRY", "FLY", "NPY", "PERF", "RUF"]
+ignore = [
+    "E501",     # Line too long (handled by formatter)
+    "D203",     # 1 blank line required before class docstring
+    "D213",     # Multi-line docstring summary should start at the second line
+    "TRY004",   # ValueError vs TypeError for type validation (Pydantic convention)
+    "PLC0415",  # Local imports needed for dynamic configuration loading
+    "ANN001",   # Missing type annotation for complex Pydantic types
+    "ARG002",   # Unused method arguments required by interfaces
+    "TRY300",   # Try/except structure required for config navigation
+    "ANN401",   # Any type required for Pydantic settings interface
+    "PLW0603",  # Global statement needed for singleton pattern
+    "C901",     # Complex function (load_config needs multiple format handling)
+    "ANN204",   # Missing return type annotation for __init__ methods
+    "D413",     # Missing blank line after docstring sections (auto-fixable)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = [
+    "S106",     # Hardcoded password in tests is acceptable
+    "PLR2004",  # Magic values in tests are acceptable
+    "PTH123",   # Using open() in tests is acceptable
+    "ARG001",   # Unused function arguments in test fixtures
+    "ARG002",   # Unused method arguments in test fixtures
+    "DTZ005",   # datetime.now() without timezone in tests
+    "SLF001",   # Private member access in tests
+    "PT011",    # pytest.raises too broad in tests
+    "ANN201",   # Missing return type annotation for test functions
+    "ANN202",   # Missing return type annotation for private functions in tests
+    "S101",     # Use of assert in tests is expected
+    "D413",     # Missing blank line after docstring sections in tests
+]
+"examples/*" = [
+    "ANN201",   # Missing return type annotation for example functions
+    "D401",     # First line imperative mood in examples
+    "D413",     # Missing blank line after docstring sections in examples
+]
+"main.py" = [
+    "D413",     # Missing blank line after docstring sections
+    "D401",     # First line imperative mood
+]
+"src/config.py" = [
+    "TRY004",   # ValueError vs TypeError for type validation (Pydantic convention)
+    "PLC0415",  # Local imports needed for dynamic configuration loading
+    "ANN001",   # Missing type annotation for Pydantic field_info (complex type)
+    "ARG002",   # Unused method arguments required by Pydantic interface
+    "TRY300",   # Try/except structure required for config navigation
+    "ANN401",   # Any type required for Pydantic settings interface
+    "PLW0603",  # Global statement needed for singleton pattern
+]
+
 [tool.mypy]
 python_version = "3.13"
 strict = true
