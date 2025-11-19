@@ -11,6 +11,7 @@ from github import Github, GithubException, RateLimitExceededException
 from github.Issue import Issue
 from github.PullRequest import PullRequest
 from github.Repository import Repository
+
 from src.github.rest_api import GitHubIntegration
 
 # Test constants
