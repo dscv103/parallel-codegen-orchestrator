@@ -43,8 +43,9 @@ class GitHubIntegration:
     def _verify_authentication(self) -> None:
         """Verify GitHub token is valid."""
         try:
-            user_login = self.github.get_user().login
-            logger.info("github_authentication_verified", user=user_login)
+            # Verify token by fetching user (but don't log PII)
+            _ = self.github.get_user().login
+            logger.info("github_authentication_verified")
         except GithubException as e:
             logger.exception("github_authentication_failed", error=str(e))
             msg = f"Invalid GitHub token: {e}"
