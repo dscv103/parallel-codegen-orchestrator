@@ -465,7 +465,7 @@ def main() -> None:
     # Check if config file exists before attempting to load it
     # This provides a clear error message before logging is configured
     if not Path(args.config).exists():
-        print(f"Error: Configuration file not found: {args.config}", file=sys.stderr)
+        sys.stderr.write(f"Error: Configuration file not found: {args.config}\n")
         sys.exit(1)
 
     # Run async main

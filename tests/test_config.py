@@ -57,7 +57,7 @@ def valid_config_dict() -> dict[str, Any]:
 def temp_config_file(tmp_path: Path, valid_config_dict: dict[str, Any]) -> Path:
     """Fixture providing temporary YAML config file."""
     config_path = tmp_path / "config.yaml"
-    with open(config_path, "w") as f:
+    with config_path.open("w") as f:
         yaml.dump(valid_config_dict, f)
     return config_path
 
@@ -66,7 +66,7 @@ def temp_config_file(tmp_path: Path, valid_config_dict: dict[str, Any]) -> Path:
 def temp_json_config_file(tmp_path: Path, valid_config_dict: dict[str, Any]) -> Path:
     """Fixture providing temporary JSON config file."""
     config_path = tmp_path / "config.json"
-    with open(config_path, "w") as f:
+    with config_path.open("w") as f:
         json.dump(valid_config_dict, f)
     return config_path
 
@@ -95,7 +95,9 @@ class TestGitHubConfig:
     def test_valid_github_config(self):
         """Test creating valid GitHubConfig."""
         config = GitHubConfig(
-            token="ghp_test_token", organization="test-org", repository="owner/repo",
+            token="ghp_test_token",
+            organization="test-org",
+            repository="owner/repo",
         )
         assert config.organization == "test-org"
         assert config.repository == "owner/repo"
@@ -121,7 +123,9 @@ class TestGitHubConfig:
         """Test GitHubConfig rejects repository with multiple slashes."""
         with pytest.raises(ValidationError, match="Repository must be in format"):
             GitHubConfig(
-                token="ghp_test_token", organization="test-org", repository="owner/repo/extra",
+                token="ghp_test_token",
+                organization="test-org",
+                repository="owner/repo/extra",
             )
 
     def test_missing_required_field(self):
@@ -142,7 +146,9 @@ class TestGitHubConfig:
     def test_secret_str_masking(self):
         """Test that token is masked in repr."""
         config = GitHubConfig(
-            token="ghp_secret_token", organization="test-org", repository="owner/repo",
+            token="ghp_secret_token",
+            organization="test-org",
+            repository="owner/repo",
         )
         repr_str = repr(config)
         assert "ghp_secret_token" not in repr_str
@@ -161,7 +167,9 @@ class TestCodegenConfig:
     def test_codegen_config_with_base_url(self):
         """Test CodegenConfig with custom base URL."""
         config = CodegenConfig(
-            org_id="org123", api_token="token456", base_url="https://custom.api.com",
+            org_id="org123",
+            api_token="token456",
+            base_url="https://custom.api.com",
         )
         assert config.base_url == "https://custom.api.com"
 

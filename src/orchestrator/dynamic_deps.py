@@ -151,7 +151,7 @@ class DynamicDependencyManager:
                 if not isinstance(dependencies, (set, list)):
                     error_msg = f"Task {task_id} dependencies must be set or list"
                     logger.error("invalid_dependencies_type", task_id=task_id)
-                    raise ValueError(error_msg)
+                    raise TypeError(error_msg)
 
                 # Normalize to set
                 dep_set = set(dependencies) if isinstance(dependencies, list) else dependencies
@@ -287,7 +287,8 @@ class DynamicDependencyManager:
         return not self.new_tasks_queue.empty()
 
     async def get_next_task(
-        self, timeout_seconds: float = 1.0,
+        self,
+        timeout_seconds: float = 1.0,
     ) -> tuple[str, dict[str, Any]] | None:
         """Get the next task from the queue.
 
