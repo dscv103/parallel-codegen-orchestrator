@@ -151,7 +151,7 @@ class DynamicDependencyManager:
                 if not isinstance(dependencies, (set, list)):
                     error_msg = f"Task {task_id} dependencies must be set or list"
                     logger.error("invalid_dependencies_type", task_id=task_id)
-                    raise TypeError(error_msg)
+                    raise ValueError(error_msg)
 
                 # Normalize to set
                 dep_set = set(dependencies) if isinstance(dependencies, list) else dependencies
