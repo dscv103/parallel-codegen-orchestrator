@@ -216,8 +216,15 @@ class TestStructuredLogging:
         except ValueError:
             logger.exception("error_occurred", operation="test")
 
+        # Validate exception information directly
         assert len(caplog.records) > 0
-        assert "error_occurred" in str(caplog.records[0].message)
+        record = caplog.records[0]
+        
+        # Assert exc_info is present (contains exception information)
+        assert record.exc_info is not None
+        
+        # Assert the exception message is in exc_info[1] (the exception instance)
+        assert "Test exception" in str(record.exc_info[1])
 
     def test_log_levels(self, caplog):
         """Test different log levels."""
