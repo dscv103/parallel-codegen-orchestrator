@@ -26,6 +26,9 @@ STATUS_EMOJI = {
     TaskStatus.RUNNING: "🔄",
 }
 
+# Maximum length for error messages in comments
+MAX_ERROR_MESSAGE_LENGTH = 100
+
 # Default status labels
 DEFAULT_STATUS_LABELS = {
     "all_success": "completed",
@@ -71,7 +74,7 @@ class GitHubAutomationHandler:
         ...     github_integration=github,
         ...     repo_name="my-org/my-repo"
         ... )
-        >>> 
+        >>>
         >>> # After orchestration completes
         >>> results = [...]  # List of TaskResult objects
         >>> context = {"issue_number": 123, "pr_number": 456}
@@ -285,7 +288,7 @@ class GitHubAutomationHandler:
                 # Create details column
                 if result.status == TaskStatus.FAILED and result.error:
                     # Truncate long error messages
-                    error_msg = result.error[:100] + "..." if len(result.error) > 100 else result.error
+                    error_msg = result.error[:MAX_ERROR_MESSAGE_LENGTH] + "..." if len(result.error) > MAX_ERROR_MESSAGE_LENGTH else result.error
                     details = f"`{error_msg}`"
                 elif result.status == TaskStatus.COMPLETED and result.result:
                     details = "Completed successfully"
@@ -345,7 +348,7 @@ class GitHubAutomationHandler:
 
             except GithubException as e:
                 error_msg = f"Failed to post comment to issue #{issue_number}: {e}"
-                logger.error(
+                logger.exception(
                     "comment_posting_failed",
                     issue_number=issue_number,
                     error=str(e),
@@ -353,7 +356,7 @@ class GitHubAutomationHandler:
                 )
                 summary["errors"].append(error_msg)
 
-            except Exception as e:
+            except (OSError, ValueError) as e:
                 error_msg = f"Unexpected error posting to issue #{issue_number}: {e}"
                 logger.exception(
                     "comment_posting_unexpected_error",
@@ -386,7 +389,7 @@ class GitHubAutomationHandler:
 
             except GithubException as e:
                 error_msg = f"Failed to post comment to PR #{pr_number}: {e}"
-                logger.error(
+                logger.exception(
                     "comment_posting_failed",
                     pr_number=pr_number,
                     error=str(e),
@@ -394,7 +397,7 @@ class GitHubAutomationHandler:
                 )
                 summary["errors"].append(error_msg)
 
-            except Exception as e:
+            except (OSError, ValueError) as e:
                 error_msg = f"Unexpected error posting to PR #{pr_number}: {e}"
                 logger.exception(
                     "comment_posting_unexpected_error",
@@ -414,9 +417,9 @@ class GitHubAutomationHandler:
                     )
                     summary["comments_posted"] += 1
 
-                except Exception as e:
+                except (OSError, ValueError) as e:
                     error_msg = f"Failed to post to issue #{issue_number}: {e}"
-                    logger.error("batch_comment_posting_failed", issue_number=issue_number, error=str(e))
+                    logger.exception("batch_comment_posting_failed", issue_number=issue_number, error=str(e))
                     summary["errors"].append(error_msg)
 
     def _determine_status_label(self, results: Sequence[TaskResult]) -> str:
@@ -476,7 +479,7 @@ class GitHubAutomationHandler:
             )
 
             # Get current labels
-            repo = self.github._get_repository(self.repo_name)
+            repo = self.github.get_repository(self.repo_name)
             issue = repo.get_issue(issue_number)
             current_labels = [label.name for label in issue.labels]
 
@@ -501,12 +504,12 @@ class GitHubAutomationHandler:
                 "issue_labels_updated_success",
                 issue_number=issue_number,
                 new_label=full_label,
-                removed_labels=[l for l in current_labels if l.startswith(self.config.status_label_prefix)],
+                removed_labels=[label for label in current_labels if label.startswith(self.config.status_label_prefix)],
             )
 
         except GithubException as e:
             error_msg = f"Failed to update labels for issue #{issue_number}: {e}"
-            logger.error(
+            logger.exception(
                 "label_update_failed",
                 issue_number=issue_number,
                 error=str(e),
@@ -514,7 +517,7 @@ class GitHubAutomationHandler:
             )
             summary["errors"].append(error_msg)
 
-        except Exception as e:
+        except (OSError, ValueError) as e:
             error_msg = f"Unexpected error updating labels for issue #{issue_number}: {e}"
             logger.exception(
                 "label_update_unexpected_error",
@@ -591,7 +594,7 @@ class GitHubAutomationHandler:
             )
 
             # Get PR object
-            repo = self.github._get_repository(self.repo_name)
+            repo = self.github.get_repository(self.repo_name)
             pr = repo.get_pull(pr_number)
 
             # Check eligibility
@@ -635,7 +638,7 @@ class GitHubAutomationHandler:
 
         except GithubException as e:
             error_msg = f"Failed to auto-merge PR #{pr_number}: {e}"
-            logger.error(
+            logger.exception(
                 "pr_auto_merge_failed",
                 pr_number=pr_number,
                 error=str(e),
@@ -643,7 +646,7 @@ class GitHubAutomationHandler:
             )
             summary["errors"].append(error_msg)
 
-        except Exception as e:
+        except (OSError, ValueError) as e:
             error_msg = f"Unexpected error during PR auto-merge #{pr_number}: {e}"
             logger.exception(
                 "pr_auto_merge_unexpected_error",

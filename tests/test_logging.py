@@ -83,7 +83,7 @@ class TestContextBinding:
         # Verify correlation_id is in the log context
         assert len(caplog.records) > 0
         record = caplog.records[0]
-        
+
         # Check if correlation_id is present as an attribute or in the message
         if hasattr(record, "correlation_id"):
             assert record.correlation_id == "test-correlation-id"
@@ -103,14 +103,14 @@ class TestContextBinding:
         logger.info("without_correlation")
 
         assert len(caplog.records) == 2
-        
+
         # First record should have correlation_id
         first_record = caplog.records[0]
         if hasattr(first_record, "correlation_id"):
             assert first_record.correlation_id == "test-correlation-id"
         else:
             assert "test-correlation-id" in first_record.getMessage()
-        
+
         # Second record should NOT have correlation_id
         second_record = caplog.records[1]
         if hasattr(second_record, "correlation_id"):
@@ -130,22 +130,22 @@ class TestContextBinding:
 
         assert len(caplog.records) > 0
         record = caplog.records[0]
-        
+
         # Check if context variables are present as attributes or in the message
         message = record.getMessage()
-        
+
         # Check task_id
         if hasattr(record, "task_id"):
             assert record.task_id == "task-1"
         else:
             assert "task-1" in message
-        
+
         # Check agent_id
         if hasattr(record, "agent_id"):
             assert record.agent_id == 5
         else:
             assert "5" in message
-        
+
         # Check status
         if hasattr(record, "status"):
             assert record.status == "running"
@@ -219,10 +219,10 @@ class TestStructuredLogging:
         # Validate exception information directly
         assert len(caplog.records) > 0
         record = caplog.records[0]
-        
+
         # Assert exc_info is present (contains exception information)
         assert record.exc_info is not None
-        
+
         # Assert the exception message is in exc_info[1] (the exception instance)
         assert "Test exception" in str(record.exc_info[1])
 

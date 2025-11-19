@@ -35,7 +35,7 @@ def mock_github_integration():
     github = Mock(spec=GitHubIntegration)
     github.post_comment = Mock()
     github.update_issue_status = Mock()
-    github._get_repository = Mock()
+    github.get_repository = Mock()
     return github
 
 
@@ -460,7 +460,7 @@ class TestUpdateLabels:
         mock_label.name = "bug"
         mock_issue.labels = [mock_label]
 
-        mock_github_integration._get_repository.return_value = mock_repo
+        mock_github_integration.get_repository.return_value = mock_repo
         mock_repo.get_issue.return_value = mock_issue
 
         await automation_handler._update_labels(
@@ -502,7 +502,7 @@ class TestUpdateLabels:
 
         mock_issue.labels = [old_status_label, bug_label]
 
-        mock_github_integration._get_repository.return_value = mock_repo
+        mock_github_integration.get_repository.return_value = mock_repo
         mock_repo.get_issue.return_value = mock_issue
 
         await automation_handler._update_labels(
@@ -518,7 +518,7 @@ class TestUpdateLabels:
         assert "status:completed" in new_labels
         assert "bug" in new_labels
         assert "status:in-progress" not in new_labels
-        assert len([l for l in new_labels if l.startswith("status:")]) == 1
+        assert len([label for label in new_labels if label.startswith("status:")]) == 1
 
     @pytest.mark.asyncio
     async def test_update_labels_no_issue_number_in_context(
@@ -553,7 +553,7 @@ class TestUpdateLabels:
         summary = {"labels_updated": 0, "errors": []}
 
         # Mock repo that raises exception
-        mock_github_integration._get_repository.side_effect = GithubException(
+        mock_github_integration.get_repository.side_effect = GithubException(
             status=404,
             data={"message": "Not Found"},
         )
@@ -695,7 +695,7 @@ class TestAutoMergePrs:
         mock_merge_result.sha = "abc123"
         mock_pr.merge.return_value = mock_merge_result
 
-        mock_github_integration._get_repository.return_value = mock_repo
+        mock_github_integration.get_repository.return_value = mock_repo
         mock_repo.get_pull.return_value = mock_pr
 
         await automation_handler._auto_merge_prs(
@@ -727,7 +727,7 @@ class TestAutoMergePrs:
         mock_pr.mergeable = True
         mock_pr.merged = False
 
-        mock_github_integration._get_repository.return_value = mock_repo
+        mock_github_integration.get_repository.return_value = mock_repo
         mock_repo.get_pull.return_value = mock_pr
 
         await automation_handler._auto_merge_prs(
@@ -758,7 +758,7 @@ class TestAutoMergePrs:
         )
 
         # Verify no merge attempted
-        mock_github_integration._get_repository.assert_not_called()
+        mock_github_integration.get_repository.assert_not_called()
         assert summary["prs_merged"] == 0
 
     @pytest.mark.asyncio
@@ -773,7 +773,7 @@ class TestAutoMergePrs:
         summary = {"prs_merged": 0, "errors": []}
 
         # Mock exception during merge
-        mock_github_integration._get_repository.side_effect = GithubException(
+        mock_github_integration.get_repository.side_effect = GithubException(
             status=500,
             data={"message": "Internal Error"},
         )
@@ -825,7 +825,7 @@ class TestExecuteAutomation:
         mock_merge_result.sha = "abc123"
         mock_pr.merge.return_value = mock_merge_result
 
-        mock_github_integration._get_repository.return_value = mock_repo
+        mock_github_integration.get_repository.return_value = mock_repo
         mock_repo.get_issue.return_value = mock_issue
         mock_repo.get_pull.return_value = mock_pr
 
