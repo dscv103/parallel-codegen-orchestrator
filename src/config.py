@@ -274,7 +274,7 @@ class OrchestratorConfig(BaseModel):
         """Apply environment variable overrides to configuration.
 
         Environment variables follow the pattern: ORCHESTRATOR_<SECTION>_<KEY>
-        Example: ORCHESTRATOR_GITHUB_TOKEN, ORCHESTRATOR_AGENT_MAX_CONCURRENT_AGENTS
+        Example: ORCHESTRATOR_GITHUB_TOKEN, ORCHESTRATOR_AGENT_MAX_CONCURRENT
 
         Args:
             config_data: Base configuration dictionary from file
