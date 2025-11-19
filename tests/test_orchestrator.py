@@ -64,7 +64,7 @@ class TestTaskOrchestratorInit:
         )
 
         assert orchestrator.executor == executor
-        assert orchestrator.wait_interval == 1.5  # noqa: PLR2004
+        assert orchestrator.wait_interval == 1.5
 
     def test_init_uses_default_wait_interval(self):
         """Test that default wait interval is used when not specified."""
@@ -74,7 +74,7 @@ class TestTaskOrchestratorInit:
 
         orchestrator = TaskOrchestrator(executor)
 
-        assert orchestrator.wait_interval == 0.5  # noqa: PLR2004
+        assert orchestrator.wait_interval == 0.5
 
 
 class TestOrchestrate:
@@ -113,7 +113,7 @@ class TestOrchestrate:
         executor.active_tasks = set()
 
         # Mock execute_task to return successful results
-        async def mock_execute(task_id, task_data):
+        async def mock_execute(task_id, _task_data):
             return TaskResult(
                 task_id=task_id,
                 status=TaskStatus.COMPLETED,
@@ -137,8 +137,8 @@ class TestOrchestrate:
         results = await orchestrator.orchestrate(tasks)
 
         # All 3 tasks should be executed
-        assert len(results) == 3  # noqa: PLR2004
-        assert executor.execute_task.call_count == 3  # noqa: PLR2004
+        assert len(results) == 3
+        assert executor.execute_task.call_count == 3
 
         # Verify all tasks were executed
         executed_task_ids = {call.args[0] for call in executor.execute_task.call_args_list}
@@ -164,7 +164,7 @@ class TestOrchestrate:
         executor.active_tasks = set()
 
         # Make task-2 fail but task-3 should still execute
-        async def mock_execute_with_failure(task_id, task_data):
+        async def mock_execute_with_failure(task_id, _task_data):
             if task_id == "task-2":
                 return TaskResult(
                     task_id=task_id,
@@ -201,13 +201,13 @@ class TestOrchestrate:
         results = await orchestrator.orchestrate(tasks)
 
         # All 3 tasks should be attempted
-        assert len(results) == 3  # noqa: PLR2004
+        assert len(results) == 3
 
         # task-1 and task-3 should succeed, task-2 should fail
         successful = [r for r in results if r.status == TaskStatus.COMPLETED]
         failed = [r for r in results if r.status == TaskStatus.FAILED]
 
-        assert len(successful) == 2  # noqa: PLR2004
+        assert len(successful) == 2
         assert len(failed) == 1
         assert failed[0].task_id == "task-2"
 
@@ -231,7 +231,7 @@ class TestOrchestrate:
         executor.active_tasks = set()
 
         # Make task-2 raise an exception
-        async def mock_execute_with_exception(task_id, task_data):
+        async def mock_execute_with_exception(task_id, _task_data):
             if task_id == "task-2":
                 msg = "Simulated task failure"
                 raise RuntimeError(msg)
@@ -261,7 +261,7 @@ class TestOrchestrate:
         results = await orchestrator.orchestrate(tasks)
 
         # All 3 tasks should be attempted
-        assert len(results) == 3  # noqa: PLR2004
+        assert len(results) == 3
 
         # Verify exception was converted to failed TaskResult
         failed = [r for r in results if r.status == TaskStatus.FAILED]
@@ -293,7 +293,7 @@ class TestOrchestrateWithEarlyTermination:
         executor.active_tasks = set()
 
         # Make task-1 fail (which is critical)
-        async def mock_execute_with_failure(task_id, task_data):
+        async def mock_execute_with_failure(task_id, _task_data):
             if task_id == "task-1":
                 return TaskResult(
                     task_id=task_id,
@@ -356,7 +356,7 @@ class TestOrchestrateWithEarlyTermination:
         executor.active_tasks = set()
 
         # Make task-1 raise an exception (task-1 is critical)
-        async def mock_execute_with_exception(task_id, task_data):
+        async def mock_execute_with_exception(task_id, _task_data):
             if task_id == "task-1":
                 msg = "Critical task exception"
                 raise RuntimeError(msg)
@@ -426,7 +426,7 @@ class TestGetStats:
         assert "graph_stats" in stats
 
         assert stats["executor_stats"]["active_tasks"] == 0
-        assert stats["graph_stats"]["total_tasks"] == 2  # noqa: PLR2004
+        assert stats["graph_stats"]["total_tasks"] == 2
 
 
 class TestIntegrationOrchestrator:
@@ -452,7 +452,7 @@ class TestIntegrationOrchestrator:
         )
 
         # Mock the execute_task to return immediately
-        async def mock_execute(task_id, task_data):
+        async def mock_execute(task_id, _task_data):
             return TaskResult(
                 task_id=task_id,
                 status=TaskStatus.COMPLETED,
@@ -476,7 +476,7 @@ class TestIntegrationOrchestrator:
         results = await orchestrator.orchestrate(tasks)
 
         # Verify both tasks completed
-        assert len(results) == 2  # noqa: PLR2004
+        assert len(results) == 2
         assert all(r.status == TaskStatus.COMPLETED for r in results)
 
         # Verify execution order - task-1 should execute before task-2

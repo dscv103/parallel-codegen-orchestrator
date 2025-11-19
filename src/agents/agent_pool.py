@@ -8,11 +8,12 @@ Codegen agents for concurrent task execution. The pool tracks agent status
 from dataclasses import dataclass, field
 from enum import Enum
 
-import structlog
 from codegen import Agent
 
+from src.log_config import get_logger
+
 # Initialize logger
-logger = structlog.get_logger()
+logger = get_logger(__name__)
 
 # Constants
 DEFAULT_MAX_AGENTS = 10
@@ -305,7 +306,10 @@ class AgentPool:
             ...     pool.reset_agent(agent)
         """
         if agent.status != AgentStatus.FAILED:
-            msg = f"Cannot reset agent {agent.id}: current status is {agent.status.value}, expected FAILED"
+            msg = (
+                f"Cannot reset agent {agent.id}: "
+                f"current status is {agent.status.value}, expected FAILED"
+            )
             logger.error(
                 "invalid_agent_reset",
                 agent_id=agent.id,

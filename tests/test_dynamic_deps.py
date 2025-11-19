@@ -139,7 +139,7 @@ class TestDynamicDependencyManager:
             },
         }
 
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValueError, match="dependencies") as exc_info:
             await manager.add_dynamic_tasks(new_tasks)
 
         assert "dependencies" in str(exc_info.value).lower()
@@ -165,7 +165,7 @@ class TestDynamicDependencyManager:
     async def test_graph_rebuild_after_add(self, manager):
         """Test that graph is rebuilt after adding tasks."""
         # Graph should be built initially
-        assert manager.dep_graph._is_built
+        assert manager.dep_graph.is_built
 
         new_tasks = {
             "task-3": {
@@ -178,7 +178,7 @@ class TestDynamicDependencyManager:
         await manager.add_dynamic_tasks(new_tasks)
 
         # Graph should still be built after dynamic addition
-        assert manager.dep_graph._is_built
+        assert manager.dep_graph.is_built
 
         # Should be able to get ready tasks
         ready = manager.dep_graph.get_ready_tasks()
@@ -282,7 +282,7 @@ class TestDynamicDependencyManager:
         """Test marking tasks as completed."""
         manager.mark_task_completed("task-1")
 
-        assert "task-1" in manager._completed_tasks
+        assert manager.is_task_completed("task-1")
 
     @pytest.mark.asyncio
     async def test_has_pending_tasks(self, manager):
@@ -471,7 +471,7 @@ class TestGraphCopyAndRebuild:
         graph.rebuild()
 
         # Should be able to get ready tasks
-        assert graph._is_built
+        assert graph.is_built
         ready = graph.get_ready_tasks()
         assert "task-1" in ready
 
@@ -521,7 +521,7 @@ class TestThreadSafety:
         assert len(manager.dep_graph.graph) == 21  # Original task-base + 20 new tasks
 
         # Graph should still be valid
-        assert manager.dep_graph._is_built
+        assert manager.dep_graph.is_built
 
         # All new tasks should be queued
         assert manager.new_tasks_queue.qsize() == 20

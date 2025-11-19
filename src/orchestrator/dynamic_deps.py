@@ -156,7 +156,8 @@ class DynamicDependencyManager:
                 # Normalize to set
                 dep_set = set(dependencies) if isinstance(dependencies, list) else dependencies
 
-                # Validate dependencies exist (either in current graph, completed tasks, or new batch)
+                # Validate dependencies exist (either in current graph,
+                # completed tasks, or new batch)
                 for dep_id in dep_set:
                     if (
                         dep_id not in self.dep_graph.graph
@@ -165,7 +166,8 @@ class DynamicDependencyManager:
                     ):
                         error_msg = (
                             f"Task {task_id} depends on non-existent task {dep_id}. "
-                            "Dependencies must reference existing tasks or other tasks in this batch."
+                            "Dependencies must reference existing tasks or "
+                            "other tasks in this batch."
                         )
                         logger.error(
                             "invalid_dependency_reference",
@@ -277,6 +279,17 @@ class DynamicDependencyManager:
         """
         self._completed_tasks.add(task_id)
         logger.debug("task_marked_completed_in_dynamic_manager", task_id=task_id)
+
+    def is_task_completed(self, task_id: str) -> bool:
+        """Check if a task has been marked as completed.
+
+        Args:
+            task_id: ID of the task to check
+
+        Returns:
+            True if the task has been marked as completed, False otherwise
+        """
+        return task_id in self._completed_tasks
 
     async def has_pending_tasks(self) -> bool:
         """Check if there are tasks waiting in the queue.

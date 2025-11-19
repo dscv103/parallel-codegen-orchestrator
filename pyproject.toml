@@ -93,6 +93,88 @@ ignore_missing_imports = true
 show_error_codes = true
 pretty = true
 
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+# Phase 1: Core rules (CURRENTLY ACTIVE)
+# Start with essential error detection and code quality rules
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+]
+
+# Rules to ignore globally
+ignore = []
+
+# PHASED ROLLOUT PLAN:
+# Phase 1 (Current): E, W, F, I - Essential errors and imports
+#   - Checkpoint: All existing code passes these rules
+#   - Timeline: Immediate (current state)
+#
+# Phase 2: Add code quality rules
+#   - Add: ["N", "UP", "B", "SIM", "RUF"]
+#   - N: pep8-naming
+#   - UP: pyupgrade (modern Python idioms)
+#   - B: flake8-bugbear (likely bugs)
+#   - SIM: flake8-simplify
+#   - RUF: Ruff-specific rules
+#   - Checkpoint: Fix violations in src/ first, then tests/
+#   - Timeline: After Phase 1 stabilizes (1-2 weeks)
+#
+# Phase 3: Add type checking and documentation
+#   - Add: ["ANN", "D", "DOC"]
+#   - ANN: flake8-annotations
+#   - D: pydocstyle
+#   - DOC: documentation checks
+#   - Checkpoint: Add type hints and docstrings to public APIs
+#   - Timeline: After Phase 2 complete (2-4 weeks)
+#
+# Phase 4: Add security and best practices
+#   - Add: ["S", "PTH", "TRY", "PERF"]
+#   - S: flake8-bandit (security)
+#   - PTH: pathlib usage
+#   - TRY: exception handling best practices
+#   - PERF: performance anti-patterns
+#   - Checkpoint: Security audit and performance review
+#   - Timeline: After Phase 3 complete (4-6 weeks)
+#
+# Phase 5: Strict mode (optional, team decision)
+#   - Add remaining rules as needed: ["A", "C4", "DTZ", "EM", "ARG", etc.]
+#   - Checkpoint: Team agreement on strict enforcement
+#   - Timeline: After Phase 4 complete (6+ weeks)
+
+# Phase-specific ignores (to be removed as code is cleaned up)
+# When moving to Phase 2, review and remove unnecessary ignores
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+force-single-line = false
+lines-after-imports = 2
+
+[tool.ruff.lint.per-file-ignores]
+# Test files: More lenient rules for test code
+"tests/**/*.py" = [
+    "S106",    # Possible hardcoded password (test data is fine)
+    "PLR2004", # Magic value used in comparison (test values are fine)
+    "DTZ005",  # datetime.now() without tz (tests don't need timezone)
+    "ARG001",  # Unused function argument (common in test fixtures)
+    "ARG002",  # Unused method argument (pytest fixtures)
+    "PTH123",  # open() should be Path.open() (tests can use open())
+]
+
+# Example files: Allow prints and simplified code
+"examples/**/*.py" = [
+    "T201",    # print found (examples can use print)
+    "INP001",  # implicit namespace package (examples don't need __init__.py)
+]
+
+# Migration helpers can be added here as needed
+# Example: "src/legacy/*.py" = ["E501", "N802"]  # Temporarily ignore for legacy code
+
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"

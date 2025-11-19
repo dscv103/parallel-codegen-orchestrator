@@ -6,11 +6,14 @@ Provides methods for repository, issue, and PR management.
 import time
 from collections.abc import Iterator
 
+from github import Github, GithubException, RateLimitExceededException
 from github.Issue import Issue
 from github.PullRequest import PullRequest
 from github.Repository import Repository
+from src.log_config import get_logger
 
-from github import Github, GithubException, RateLimitExceededException
+# Initialize logger
+logger = get_logger(__name__)
 
 # Constants
 BRANCH_EXISTS_STATUS_CODE = 422
@@ -33,13 +36,18 @@ class GitHubIntegration:
         """
         self.github = Github(token)
         self.org_id = org_id
+        logger.info("github_integration_initializing", org_id=org_id)
         self._verify_authentication()
+        logger.info("github_integration_initialized", org_id=org_id)
 
     def _verify_authentication(self) -> None:
         """Verify GitHub token is valid."""
         try:
+            # Verify token by fetching user (but don't log PII)
             _ = self.github.get_user().login
+            logger.info("github_authentication_verified")
         except GithubException as e:
+            logger.exception("github_authentication_failed", error=str(e))
             msg = f"Invalid GitHub token: {e}"
             raise ValueError(msg) from e
 

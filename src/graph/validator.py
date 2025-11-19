@@ -8,12 +8,12 @@ and orphaned task detection.
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-import structlog
+from src.log_config import get_logger
 
 if TYPE_CHECKING:
     from src.graph.dependency_graph import DependencyGraph
 
-logger = structlog.get_logger(__name__)
+logger = get_logger(__name__)
 
 
 @dataclass

@@ -8,6 +8,11 @@ from typing import Any
 
 import httpx
 
+from src.log_config import get_logger
+
+# Initialize logger
+logger = get_logger(__name__)
+
 
 class GraphQLError(Exception):
     """Exception raised for GraphQL API errors."""
@@ -29,6 +34,7 @@ class GitHubGraphQL:
         """
         self.token = token
         self.base_url = base_url
+        logger.info("github_graphql_initializing", base_url=base_url)
         self.client = httpx.AsyncClient(
             base_url=base_url,
             headers={
@@ -37,6 +43,7 @@ class GitHubGraphQL:
             },
             timeout=30.0,
         )
+        logger.info("github_graphql_initialized", base_url=base_url)
 
     async def execute_query(
         self,

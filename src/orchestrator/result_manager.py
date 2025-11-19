@@ -12,6 +12,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from src.log_config import get_logger
+
+# Initialize logger
+logger = get_logger(__name__)
+
 
 @dataclass
 class TaskResult:

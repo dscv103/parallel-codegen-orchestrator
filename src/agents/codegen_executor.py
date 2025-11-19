@@ -10,11 +10,12 @@ from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
-import structlog
 from codegen import Agent
 
+from src.log_config import get_logger
+
 # Initialize logger
-logger = structlog.get_logger()
+logger = get_logger(__name__)
 
 # Constants
 DEFAULT_TIMEOUT_SECONDS = 600
@@ -118,7 +119,10 @@ class CodegenExecutor:
             raise ValueError(msg)
 
         if poll_interval_seconds < MIN_POLL_INTERVAL:
-            msg = f"poll_interval_seconds must be at least {MIN_POLL_INTERVAL}, got {poll_interval_seconds}"
+            msg = (
+                f"poll_interval_seconds must be at least {MIN_POLL_INTERVAL}, "
+                f"got {poll_interval_seconds}"
+            )
             raise ValueError(msg)
 
         if retry_delay_seconds < MIN_RETRY_DELAY:
