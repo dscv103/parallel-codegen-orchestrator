@@ -15,6 +15,17 @@ from src.agents.codegen_executor import TaskResult, TaskStatus
 from src.graph.dependency_graph import DependencyGraph
 from src.orchestrator.task_executor import TaskExecutor
 
+# Test constants for magic number avoidance
+EXPECTED_POOL_SIZE = 3
+DEFAULT_TIMEOUT = 300
+DEFAULT_POLL_INTERVAL = 5
+MAX_CONCURRENT_TASKS = 2
+EXPECTED_TOTAL_TASKS = 4
+MIN_RETRIES_REQUIRED = 3
+EXPECTED_ACTIVE_TASKS = 2
+EXPECTED_COMPLETED_TASKS = 1
+EXPECTED_TOTAL_STATS = 3
+
 
 @pytest.fixture
 def mock_agent_pool():
@@ -78,7 +89,7 @@ class TestTaskExecutorInit:
         """Test that semaphore is created with pool size."""
         executor = TaskExecutor(mock_agent_pool, dependency_graph)
 
-        assert executor.semaphore._value == 3  # noqa: SLF001
+        assert executor.semaphore._value == EXPECTED_POOL_SIZE  # noqa: SLF001
         assert executor.agent_pool == mock_agent_pool
         assert executor.dep_graph == dependency_graph
 
@@ -95,12 +106,12 @@ class TestTaskExecutorInit:
         executor = TaskExecutor(
             mock_agent_pool,
             dependency_graph,
-            timeout_seconds=300,
-            poll_interval_seconds=5,
+            timeout_seconds=DEFAULT_TIMEOUT,
+            poll_interval_seconds=DEFAULT_POLL_INTERVAL,
         )
 
-        assert executor.timeout_seconds == 300
-        assert executor.poll_interval_seconds == 5
+        assert executor.timeout_seconds == DEFAULT_TIMEOUT
+        assert executor.poll_interval_seconds == DEFAULT_POLL_INTERVAL
 
 
 class TestExecuteTask:
@@ -269,8 +280,8 @@ class TestExecuteTask:
             )
 
             # Verify max concurrent was limited by semaphore
-            assert max_concurrent <= 2
-            assert len(results) == 4
+            assert max_concurrent <= MAX_CONCURRENT_TASKS
+            assert len(results) == EXPECTED_TOTAL_TASKS
 
 
 class TestWaitForIdleAgent:
@@ -298,7 +309,7 @@ class TestWaitForIdleAgent:
         def get_agent_after_delay():
             nonlocal call_count
             call_count += 1
-            if call_count >= 3:
+            if call_count >= MIN_RETRIES_REQUIRED:
                 return mock_agent_pool.agents[0]
             return None
 
@@ -307,7 +318,7 @@ class TestWaitForIdleAgent:
         agent = await task_executor._wait_for_idle_agent()  # noqa: SLF001
 
         assert agent is not None
-        assert call_count == 3
+        assert call_count == MIN_RETRIES_REQUIRED
 
 
 class TestGetOrCreateExecutor:
@@ -410,9 +421,9 @@ class TestGetStats:
 
         stats = task_executor.get_stats()
 
-        assert stats["active_tasks"] == 2
-        assert stats["completed_tasks"] == 1
-        assert stats["total_tasks"] == 3
+        assert stats["active_tasks"] == EXPECTED_ACTIVE_TASKS
+        assert stats["completed_tasks"] == EXPECTED_COMPLETED_TASKS
+        assert stats["total_tasks"] == EXPECTED_TOTAL_STATS
         assert stats["agent_pool_stats"] == {"idle": 2, "busy": 1, "failed": 0}
 
 
@@ -431,7 +442,7 @@ class TestClearResults:
                 duration_seconds=1.0,
             )
 
-        assert len(task_executor.task_results) == 3
+        assert len(task_executor.task_results) == EXPECTED_TOTAL_STATS
 
         task_executor.clear_results()
 
