@@ -175,6 +175,13 @@ class ProgressMonitor:
             snapshot = self._create_snapshot()
             start_time = self.start_time
 
+        # Calculate completion percentage from snapshot to avoid race condition
+        completion_pct = (
+            ((snapshot.completed + snapshot.failed) / snapshot.total * 100.0)
+            if snapshot.total > 0
+            else 0.0
+        )
+
         return {
             "total": snapshot.total,
             "completed": snapshot.completed,
@@ -184,7 +191,7 @@ class ProgressMonitor:
             "throughput": snapshot.throughput,
             "average_duration_seconds": snapshot.average_duration,
             "elapsed_seconds": time.time() - start_time,
-            "completion_percentage": self._calculate_completion_percentage(),
+            "completion_percentage": completion_pct,
             "estimated_time_remaining_seconds": self._estimate_time_remaining(snapshot),
         }
 
