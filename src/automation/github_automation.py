@@ -614,8 +614,8 @@ class GitHubAutomationHandler:
         if pr.state != "open":
             return False, f"PR is {pr.state}, not open"
 
-        # Check PR is mergeable
-        if not pr.mergeable:
+        # Check PR is mergeable (None means status unknown, False means conflicts)
+        if pr.mergeable is False:
             return False, "PR has merge conflicts"
 
         # Check PR is not merged already
