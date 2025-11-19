@@ -8,6 +8,7 @@ fetches tasks, builds dependency graph, and executes the orchestration loop.
 
 import argparse
 import asyncio
+import logging
 import signal
 import sys
 from pathlib import Path
@@ -47,7 +48,7 @@ def configure_logging(level: str = "INFO") -> None:
             else structlog.processors.JSONRenderer(),
         ],
         wrapper_class=structlog.make_filtering_bound_logger(
-            getattr(structlog.stdlib.LoggerFactory(), level.upper(), structlog.stdlib.INFO),
+            getattr(logging, level.upper(), logging.INFO),
         ),
         context_class=dict,
         logger_factory=structlog.PrintLoggerFactory(),
