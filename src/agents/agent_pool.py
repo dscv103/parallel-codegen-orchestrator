@@ -306,7 +306,10 @@ class AgentPool:
             ...     pool.reset_agent(agent)
         """
         if agent.status != AgentStatus.FAILED:
-            msg = f"Cannot reset agent {agent.id}: current status is {agent.status.value}, expected FAILED"
+            msg = (
+                f"Cannot reset agent {agent.id}: "
+                f"current status is {agent.status.value}, expected FAILED"
+            )
             logger.error(
                 "invalid_agent_reset",
                 agent_id=agent.id,

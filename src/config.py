@@ -357,7 +357,8 @@ class OrchestratorConfig(BaseModel):
         # Warn about resource usage
         if self.agent.max_concurrent_agents == MAX_CONCURRENT_AGENTS:
             warnings.append(
-                f"Using maximum concurrent agents ({MAX_CONCURRENT_AGENTS}) - monitor resource usage",
+                f"Using maximum concurrent agents ({MAX_CONCURRENT_AGENTS}) - "
+                "monitor resource usage",
             )
 
         if self.agent.task_timeout_seconds > HIGH_TIMEOUT_THRESHOLD:  # 30 minutes

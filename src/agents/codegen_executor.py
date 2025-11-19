@@ -119,7 +119,10 @@ class CodegenExecutor:
             raise ValueError(msg)
 
         if poll_interval_seconds < MIN_POLL_INTERVAL:
-            msg = f"poll_interval_seconds must be at least {MIN_POLL_INTERVAL}, got {poll_interval_seconds}"
+            msg = (
+                f"poll_interval_seconds must be at least {MIN_POLL_INTERVAL}, "
+                f"got {poll_interval_seconds}"
+            )
             raise ValueError(msg)
 
         if retry_delay_seconds < MIN_RETRY_DELAY:
