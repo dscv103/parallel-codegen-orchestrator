@@ -322,16 +322,16 @@ class TestContextIsolation:
 class TestLoggingIntegration:
     """Integration tests for logging with other components."""
 
-    def test_logging_with_async_context(self, caplog):
-        """Test logging in an async context (placeholder for async tests)."""
+    def test_logging_with_context_lifecycle(self, caplog):
+        """Test logging context lifecycle with bind, log, and clear operations."""
         configure_logging(level="INFO", json_logs=True)
         caplog.set_level(logging.INFO)
         logger = get_logger("test")
 
-        # Simulate async operation logging
-        bind_context(task_id="async-task-1", operation="async_operation")
-        logger.info("async_operation_started")
-        logger.info("async_operation_completed", duration_ms=150)
+        # Test context lifecycle: bind -> log -> clear
+        bind_context(task_id="task-1", operation="test_operation")
+        logger.info("operation_started")
+        logger.info("operation_completed", duration_ms=150)
         clear_context()
 
         assert len(caplog.records) == 2
