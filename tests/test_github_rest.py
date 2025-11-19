@@ -6,11 +6,12 @@ Tests follow TDD principles - written before implementation
 from unittest.mock import Mock, patch
 
 import pytest
+
+from github import Github, GithubException, RateLimitExceededException
 from github.Issue import Issue
 from github.PullRequest import PullRequest
 from github.Repository import Repository
 
-from github import Github, GithubException, RateLimitExceededException
 from src.github.rest_api import GitHubIntegration
 
 # Test constants
