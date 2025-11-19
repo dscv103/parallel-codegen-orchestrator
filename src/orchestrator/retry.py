@@ -206,8 +206,6 @@ async def execute_with_retry[T](
                 # First attempt succeeded, no retry needed
                 pass
 
-            return result
-
         except Exception as e:
             last_error = e
             failure_type = classify_error(e)
@@ -258,6 +256,9 @@ async def execute_with_retry[T](
 
             # Wait before next retry
             await asyncio.sleep(delay)
+        else:
+            # Success case - return the result
+            return result
 
     # This should never be reached, but just in case
     if last_error:

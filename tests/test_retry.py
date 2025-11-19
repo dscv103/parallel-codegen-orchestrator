@@ -8,15 +8,15 @@ This module tests the retry logic implementation including:
 """
 
 import asyncio
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock
 
 import pytest
 
 from src.config import AgentConfig
 from src.orchestrator.retry import (
     FailureType,
-    RetryConfig,
     RetryableError,
+    RetryConfig,
     classify_error,
     execute_with_retry,
 )
@@ -114,7 +114,7 @@ class TestExecuteWithRetry:
                 TimeoutError("Timeout 1"),
                 TimeoutError("Timeout 2"),
                 {"status": "success"},
-            ]
+            ],
         )
 
         result = await execute_with_retry(
@@ -328,7 +328,8 @@ class TestRetryIntegration:
             nonlocal call_count
             call_count += 1
             if call_count < 3:
-                raise TimeoutError("Network timeout")
+                msg = "Network timeout"
+                raise TimeoutError(msg)
             return await simulate_api_call()
 
         result = await execute_with_retry(
@@ -369,4 +370,3 @@ class TestRetryIntegration:
 
         # Should have tried twice (transient) then hit permanent error
         assert call_count == 3
-

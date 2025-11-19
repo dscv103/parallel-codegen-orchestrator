@@ -243,6 +243,88 @@ async def post_results_to_github(
     logger.info("results_posted_to_github", total_posted=len(results))
 
 
+async def _setup_configuration(args: argparse.Namespace) -> OrchestratorConfig:
+    """Load and validate configuration."""
+    logger.info("loading_configuration", config_file=args.config)
+    config = OrchestratorConfig.from_yaml(args.config)
+
+    # Override logging level if specified via CLI
+    if args.log_level != "INFO":
+        config.logging_level = args.log_level
+        configure_logging(config.logging_level)
+
+    # Print configuration warnings
+    warnings = config.validate_config()
+    for warning in warnings:
+        logger.warning("configuration_warning", message=warning)
+
+    return config
+
+
+async def _setup_orchestration_components(config: OrchestratorConfig) -> tuple:
+    """Initialize GitHub, agent pool, and orchestration components."""
+    # Initialize GitHub integration
+    logger.info("initializing_github_integration", organization=config.github.organization)
+    github = GitHubIntegration(
+        token=config.github.token,
+        org_id=config.github.organization,
+    )
+
+    # Fetch tasks from GitHub
+    tasks = await fetch_tasks_from_github(github, config)
+
+    if not tasks:
+        logger.warning("no_tasks_found", repository=config.github.repository)
+        return github, tasks, None, None, None
+
+    # Build dependency graph
+    dep_graph = build_dependency_graph(tasks)
+
+    # Initialize agent pool
+    logger.info(
+        "initializing_agent_pool",
+        max_agents=config.agent.max_concurrent_agents,
+    )
+    agent_pool = AgentPool(
+        org_id=config.codegen.org_id,
+        api_token=config.codegen.api_token,
+        max_agents=config.agent.max_concurrent_agents,
+    )
+
+    # Create retry configuration from agent config
+    retry_config = RetryConfig.from_agent_config(config.agent)
+
+    # Create executor and orchestrator
+    logger.info("starting_orchestration")
+    executor = TaskExecutor(
+        agent_pool=agent_pool,
+        dep_graph=dep_graph,
+        timeout_seconds=config.agent.task_timeout_seconds,
+        retry_config=retry_config,
+    )
+    orchestrator = TaskOrchestrator(executor=executor)
+
+    return github, tasks, orchestrator, ResultManager(), dep_graph
+
+
+async def _convert_results_for_github(results: list, tasks: dict) -> list:
+    """Convert TaskResult objects to dicts with task metadata."""
+    results_dicts = []
+    for task_result in results:
+        task_data = tasks.get(task_result.task_id, {})
+        result_dict = {
+            "task_id": task_result.task_id,
+            "issue_number": task_data.get("issue_number"),
+            "title": task_data.get("title", "Unknown task"),
+            "status": task_result.status.value,  # Convert enum to string
+            "duration_seconds": task_result.duration_seconds,
+            "result": task_result.result,
+            "error": task_result.error,
+        }
+        results_dicts.append(result_dict)
+    return results_dicts
+
+
 async def main_async(args: argparse.Namespace) -> int:
     """Main async orchestration entry point.
 
@@ -259,67 +341,18 @@ async def main_async(args: argparse.Namespace) -> int:
 
     try:
         # Load configuration
-        logger.info("loading_configuration", config_file=args.config)
-        config = OrchestratorConfig.from_yaml(args.config)
-
-        # Override logging level if specified via CLI
-        if args.log_level != "INFO":
-            config.logging_level = args.log_level
-            configure_logging(config.logging_level)
-
-        # Print configuration warnings
-        warnings = config.validate_config()
-        for warning in warnings:
-            logger.warning("configuration_warning", message=warning)
+        config = await _setup_configuration(args)
 
         # Dry run mode - validate and exit
         if args.dry_run:
             logger.info("dry_run_mode_complete", config_valid=True)
             return exit_code
 
-        # Initialize GitHub integration
-        logger.info("initializing_github_integration", organization=config.github.organization)
-        github = GitHubIntegration(
-            token=config.github.token,
-            org_id=config.github.organization,
-        )
-
-        # Fetch tasks from GitHub
-        tasks = await fetch_tasks_from_github(github, config)
+        # Setup orchestration components
+        github, tasks, orchestrator, result_manager, _dep_graph = await _setup_orchestration_components(config)
 
         if not tasks:
-            logger.warning("no_tasks_found", repository=config.github.repository)
             return exit_code
-
-        # Build dependency graph
-        dep_graph = build_dependency_graph(tasks)
-
-        # Initialize agent pool
-        logger.info(
-            "initializing_agent_pool",
-            max_agents=config.agent.max_concurrent_agents,
-        )
-        agent_pool = AgentPool(
-            org_id=config.codegen.org_id,
-            api_token=config.codegen.api_token,
-            max_agents=config.agent.max_concurrent_agents,
-        )
-
-        # Initialize result manager
-        result_manager = ResultManager()
-
-        # Create retry configuration from agent config
-        retry_config = RetryConfig.from_agent_config(config.agent)
-
-        # Create executor and orchestrator
-        logger.info("starting_orchestration")
-        executor = TaskExecutor(
-            agent_pool=agent_pool,
-            dep_graph=dep_graph,
-            timeout_seconds=config.agent.task_timeout_seconds,
-            retry_config=retry_config,
-        )
-        orchestrator = TaskOrchestrator(executor=executor)
 
         # Execute orchestration loop
         results = await orchestrator.orchestrate(tasks)
@@ -336,21 +369,7 @@ async def main_async(args: argparse.Namespace) -> int:
 
         # Post results back to GitHub
         if config.automation.post_results_as_comment and not args.no_post_results:
-            # Convert TaskResult objects to dicts with task metadata
-            results_dicts = []
-            for task_result in results:
-                task_data = tasks.get(task_result.task_id, {})
-                result_dict = {
-                    "task_id": task_result.task_id,
-                    "issue_number": task_data.get("issue_number"),
-                    "title": task_data.get("title", "Unknown task"),
-                    "status": task_result.status.value,  # Convert enum to string
-                    "duration_seconds": task_result.duration_seconds,
-                    "result": task_result.result,
-                    "error": task_result.error,
-                }
-                results_dicts.append(result_dict)
-
+            results_dicts = await _convert_results_for_github(results, tasks)
             await post_results_to_github(github, results_dicts, config)
 
         # Set exit code based on results
