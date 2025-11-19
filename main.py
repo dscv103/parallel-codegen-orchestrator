@@ -349,7 +349,13 @@ async def main_async(args: argparse.Namespace) -> int:
             return exit_code
 
         # Setup orchestration components
-        github, tasks, orchestrator, result_manager, _dep_graph = await _setup_orchestration_components(config)
+        (
+            github,
+            tasks,
+            orchestrator,
+            result_manager,
+            _dep_graph,
+        ) = await _setup_orchestration_components(config)
 
         if not tasks:
             return exit_code
