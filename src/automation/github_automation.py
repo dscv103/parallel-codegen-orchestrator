@@ -429,11 +429,48 @@ class GitHubAutomationHandler:
                     )
                     summary["comments_posted"] += 1
 
-                except (OSError, ValueError) as e:
+                except GithubException as e:
                     error_msg = f"Failed to post to issue #{issue_number}: {e}"
                     logger.exception(
                         "batch_comment_posting_failed",
                         issue_number=issue_number,
+                        error=str(e),
+                        status_code=e.status,
+                    )
+                    summary["errors"].append(error_msg)
+                except Exception as e:
+                    error_msg = f"Unexpected error posting to issue #{issue_number}: {e}"
+                    logger.exception(
+                        "batch_comment_posting_unexpected_error",
+                        issue_number=issue_number,
+                        error=str(e),
+                    )
+                    summary["errors"].append(error_msg)
+
+        # Batch posting to multiple PRs (using issue comment API)
+        if "pr_numbers" in context:
+            for pr_number in context["pr_numbers"]:
+                try:
+                    self.github.post_comment(
+                        repo_name=self.repo_name,
+                        issue_number=pr_number,
+                        comment=comment_text,
+                    )
+                    summary["comments_posted"] += 1
+                except GithubException as e:
+                    error_msg = f"Failed to post to PR #{pr_number}: {e}"
+                    logger.exception(
+                        "batch_comment_posting_failed",
+                        pr_number=pr_number,
+                        error=str(e),
+                        status_code=e.status,
+                    )
+                    summary["errors"].append(error_msg)
+                except Exception as e:
+                    error_msg = f"Unexpected error posting to PR #{pr_number}: {e}"
+                    logger.exception(
+                        "batch_comment_posting_unexpected_error",
+                        pr_number=pr_number,
                         error=str(e),
                     )
                     summary["errors"].append(error_msg)
