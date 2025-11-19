@@ -370,6 +370,67 @@ class OrchestratorConfig(BaseModel):
         return warnings
 
 
+# Global configuration instance for singleton pattern
+_config_instance: OrchestratorConfig | None = None
+
+
+def load_config(config_path: str | Path | None = None) -> OrchestratorConfig:
+    """Load configuration from file.
+
+    Args:
+        config_path: Path to configuration file. If None, looks for config.yaml or config.json
+                    in current directory.
+
+    Returns:
+        Loaded OrchestratorConfig instance
+
+    Raises:
+        FileNotFoundError: If config file not found
+        ValueError: If config file is invalid or unsupported format
+    """
+    if config_path is None:
+        # Look for default config files
+        for default_name in ["config.yaml", "config.yml", "config.json"]:
+            default_path = Path(default_name)
+            if default_path.exists():
+                config_path = default_path
+                break
+        else:
+            msg = "No configuration file found. Expected config.yaml, config.yml, or config.json"
+            raise FileNotFoundError(msg)
+
+    config_path = Path(config_path)
+    if not config_path.exists():
+        msg = f"Configuration file not found: {config_path}"
+        raise FileNotFoundError(msg)
+
+    return OrchestratorConfig.from_yaml(config_path)
+
+
+def get_config(config_path: str | Path | None = None, reload: bool = False) -> OrchestratorConfig:
+    """Get configuration instance (singleton pattern).
+
+    Args:
+        config_path: Path to configuration file. Only used on first call or when reload=True.
+        reload: If True, force reload configuration from file.
+
+    Returns:
+        OrchestratorConfig instance
+    """
+    global _config_instance
+
+    if _config_instance is None or reload:
+        _config_instance = load_config(config_path)
+
+    return _config_instance
+
+
+def reset_config() -> None:
+    """Reset the global configuration instance."""
+    global _config_instance
+    _config_instance = None
+
+
 # Export main configuration class
 __all__ = [
     "AgentConfig",
@@ -377,4 +438,7 @@ __all__ = [
     "CodegenConfig",
     "GitHubConfig",
     "OrchestratorConfig",
+    "get_config",
+    "load_config",
+    "reset_config",
 ]
