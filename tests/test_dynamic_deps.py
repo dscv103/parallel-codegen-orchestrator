@@ -139,7 +139,7 @@ class TestDynamicDependencyManager:
             },
         }
 
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValueError, match="dependencies") as exc_info:
             await manager.add_dynamic_tasks(new_tasks)
 
         assert "dependencies" in str(exc_info.value).lower()

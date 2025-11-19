@@ -85,7 +85,7 @@ def demonstrate_error_logging() -> None:
 
     try:
         # Simulate an error
-        result = 10 / 0
+        _ = 10 / 0
     except ZeroDivisionError:
         logger.exception(
             "division_error",
@@ -108,11 +108,11 @@ def demonstrate_log_levels() -> None:
 def main() -> None:
     """Main demonstration function."""
     # Configure logging for JSON output
-    print("=== JSON Logging Output ===\n")
     configure_logging(level="INFO", json_logs=True)
 
     # Demonstrate basic logging
     logger = get_logger(__name__)
+    logger.info("=== JSON Logging Output ===")
     logger.info("demo_started", version="1.0")
 
     # Demonstrate log levels
@@ -127,10 +127,10 @@ def main() -> None:
     logger.info("demo_completed")
 
     # Reconfigure for console output (human-readable)
-    print("\n=== Console Logging Output (Human-Readable) ===\n")
     configure_logging(level="DEBUG", json_logs=False)
 
     logger = get_logger(__name__)
+    logger.info("=== Console Logging Output (Human-Readable) ===")
     logger.info("console_demo_started", mode="development")
 
     # Show context binding

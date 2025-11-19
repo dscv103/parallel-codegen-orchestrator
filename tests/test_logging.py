@@ -162,8 +162,12 @@ class TestStructuredLogging:
         caplog.set_level(logging.ERROR)
         logger = get_logger("test")
 
+        def _raise_test_error():
+            msg = "Test exception"
+            raise ValueError(msg)
+
         try:
-            raise ValueError("Test exception")
+            _raise_test_error()
         except ValueError:
             logger.exception("error_occurred", operation="test")
 
@@ -282,7 +286,7 @@ class TestLoggingIntegration:
 
     def test_logging_performance(self, caplog):
         """Test logging performance with multiple calls."""
-        import time
+        import time  # noqa: PLC0415
 
         configure_logging(level="INFO", json_logs=True)
         caplog.set_level(logging.INFO)
