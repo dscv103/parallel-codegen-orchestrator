@@ -278,6 +278,17 @@ class DynamicDependencyManager:
         self._completed_tasks.add(task_id)
         logger.debug("task_marked_completed_in_dynamic_manager", task_id=task_id)
 
+    def is_task_completed(self, task_id: str) -> bool:
+        """Check if a task has been marked as completed.
+
+        Args:
+            task_id: ID of the task to check
+
+        Returns:
+            True if the task has been marked as completed, False otherwise
+        """
+        return task_id in self._completed_tasks
+
     async def has_pending_tasks(self) -> bool:
         """Check if there are tasks waiting in the queue.
 

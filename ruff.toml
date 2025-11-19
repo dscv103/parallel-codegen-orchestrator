@@ -81,10 +81,30 @@ exclude = [
 
 [lint.per-file-ignores]
 # Tests can have additional flexibility
-"tests/**/*.py" = ["S101", "ANN", "D"]  # Allow assert, skip annotations and docstrings
-"**/test_*.py" = ["S101", "ANN", "D"]
+"tests/**/*.py" = [
+    "S101",    # Allow assert statements
+    "S106",    # Possible hardcoded password (test data is fine)
+    "ANN",     # Skip type annotations
+    "D",       # Skip docstrings
+    "PLR2004", # Magic value used in comparison (test values are fine)
+    "DTZ005",  # datetime.now() without tz (tests don't need timezone)
+    "ARG002",  # Unused method argument (pytest fixtures)
+    "PTH123",  # open() should be Path.open() (tests can use open())
+]
+"**/test_*.py" = [
+    "S101",    # Allow assert statements
+    "S106",    # Possible hardcoded password (test data is fine)
+    "ANN",     # Skip type annotations
+    "D",       # Skip docstrings
+    "PLR2004", # Magic value used in comparison (test values are fine)
+    "DTZ005",  # datetime.now() without tz (tests don't need timezone)
+    "ARG002",  # Unused method argument (pytest fixtures)
+    "PTH123",  # open() should be Path.open() (tests can use open())
+]
 # __init__.py files don't need docstrings
 "**/__init__.py" = ["D104"]
+# Examples can use print statements
+"examples/**/*.py" = ["T201"]
 
 [lint.mccabe]
 # Maximum cyclomatic complexity
