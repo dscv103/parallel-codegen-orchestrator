@@ -358,7 +358,22 @@ async def main_async(args: argparse.Namespace) -> int:
 
             # Post results back to GitHub
             if config.automation.post_results_as_comment and not args.no_post_results:
-                await post_results_to_github(github, results, config)
+                # Convert TaskResult objects to dicts with task metadata
+                results_dicts = []
+                for task_result in results:
+                    task_data = tasks.get(task_result.task_id, {})
+                    result_dict = {
+                        "task_id": task_result.task_id,
+                        "issue_number": task_data.get("issue_number"),
+                        "title": task_data.get("title", "Unknown task"),
+                        "status": task_result.status.value,  # Convert enum to string
+                        "duration_seconds": task_result.duration_seconds,
+                        "result": task_result.result,
+                        "error": task_result.error,
+                    }
+                    results_dicts.append(result_dict)
+                
+                await post_results_to_github(github, results_dicts, config)
 
             # Set exit code based on results
             if summary.get("failed", 0) > 0:
