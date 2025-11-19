@@ -33,17 +33,22 @@ async def simulate_task_execution(task_id: str, agent_id: int) -> None:
     # Bind task context
     bind_context(task_id=task_id, agent_id=agent_id)
 
-    logger.info("task_started", status="pending")
+    try:
+        logger.info("task_started", status="pending")
 
-    # Simulate work
-    await asyncio.sleep(0.5)
-    logger.debug("task_processing", progress=50)
+        # Simulate work
+        await asyncio.sleep(0.5)
+        logger.debug("task_processing", progress=50)
 
-    await asyncio.sleep(0.5)
-    logger.info("task_completed", status="success", duration_seconds=1.0)
-
-    # Clear context after task completion
-    clear_context()
+        await asyncio.sleep(0.5)
+        logger.info("task_completed", status="success", duration_seconds=1.0)
+    except Exception as e:
+        # Log the exception with the current context before re-raising
+        logger.exception("task_execution_failed", error=str(e))
+        raise
+    finally:
+        # Always clear context to prevent leakage into subsequent tasks
+        clear_context()
 
 
 async def simulate_orchestration() -> None:
