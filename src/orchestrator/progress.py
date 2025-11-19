@@ -173,6 +173,7 @@ class ProgressMonitor:
         """
         with self._lock:
             snapshot = self._create_snapshot()
+            start_time = self.start_time
 
         return {
             "total": snapshot.total,
@@ -182,7 +183,7 @@ class ProgressMonitor:
             "remaining": snapshot.remaining,
             "throughput": snapshot.throughput,
             "average_duration_seconds": snapshot.average_duration,
-            "elapsed_seconds": time.time() - self.start_time,
+            "elapsed_seconds": time.time() - start_time,
             "completion_percentage": self._calculate_completion_percentage(),
             "estimated_time_remaining_seconds": self._estimate_time_remaining(snapshot),
         }
