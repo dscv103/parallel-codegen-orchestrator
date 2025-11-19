@@ -280,7 +280,7 @@ class OrchestratorConfig(BaseSettings):
         """Validate and normalize logging level."""
         if not isinstance(v, str):
             msg = "Logging level must be a string"
-            raise ValueError(msg)
+            raise TypeError(msg)
 
         # Convert to uppercase for case-insensitive validation
         level = v.upper()
@@ -394,13 +394,8 @@ def load_config(config_path: str | Path | None = None) -> OrchestratorConfig:
         FileNotFoundError: If config file doesn't exist
         yaml.YAMLError: If YAML parsing fails
         json.JSONDecodeError: If JSON parsing fails
-        ValueError: If file format is unsupported
-        ValidationError: If configuration validation fails
+        ValueError: If file format is unsupported or validation fails
     """
-    from typing import Any
-
-    from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
-
     # Search for default config file if none specified
     if config_path is None:
         default_paths = [
@@ -438,56 +433,9 @@ def load_config(config_path: str | Path | None = None) -> OrchestratorConfig:
         msg = f"Unsupported config file format: {suffix}"
         raise ValueError(msg)
 
-    # Create a custom settings source for the file data
-    class FileSettingsSource(PydanticBaseSettingsSource):
-        def get_field_value(self, field_info, field_name: str) -> tuple[Any, str, bool]:
-            # Navigate nested config data
-            current = config_data
-            field_path = field_name.split("__")
-
-            try:
-                for part in field_path:
-                    current = current[part]
-                return current, field_name, False
-            except (KeyError, TypeError):
-                return None, field_name, False
-
-        def prepare_field_value(self, field_name: str, field_value: Any, value_source: str) -> Any:
-            return field_value
-
-        def __call__(self) -> dict[str, Any]:
-            return config_data
-
-    # Create a custom config class with file data as a settings source
-    class FileBasedConfig(OrchestratorConfig):
-        model_config = SettingsConfigDict(
-            env_nested_delimiter="__",
-            env_prefix="",
-            case_sensitive=False,
-        )
-
-        @classmethod
-        def settings_customise_sources(
-            cls,
-            settings_cls: type[BaseSettings],
-            init_settings: PydanticBaseSettingsSource,
-            env_settings: PydanticBaseSettingsSource,
-            dotenv_settings: PydanticBaseSettingsSource,
-            file_secret_settings: PydanticBaseSettingsSource,
-        ) -> tuple[PydanticBaseSettingsSource, ...]:
-            # Order: init_settings, env_settings, file_settings, dotenv_settings, file_secret_settings
-            # Environment variables should have higher priority than file
-            return (
-                init_settings,
-                env_settings,
-                FileSettingsSource(settings_cls),
-                dotenv_settings,
-                file_secret_settings,
-            )
-
-    # Create configuration - environment variables will override file values
+    # Create configuration with validation
     try:
-        return FileBasedConfig()
+        return OrchestratorConfig(**config_data)
     except ValidationError as e:
         msg = f"Configuration validation failed: {e}"
         raise ValueError(msg) from e
@@ -506,7 +454,7 @@ def get_config(config_path: str | Path | None = None, *, reload: bool = False) -
     Raises:
         FileNotFoundError: If no config file found in default locations
     """
-    global _config_instance
+    global _config_instance  # noqa: PLW0603
 
     # Return cached instance if available and not reloading
     if _config_instance is not None and not reload:
@@ -538,7 +486,7 @@ def get_config(config_path: str | Path | None = None, *, reload: bool = False) -
 
 def reset_config() -> None:
     """Reset cached configuration instance."""
-    global _config_instance
+    global _config_instance  # noqa: PLW0603
     _config_instance = None
 
 
