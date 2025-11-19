@@ -7,9 +7,9 @@ to manage task dependencies and determine execution order.
 import asyncio
 from graphlib import TopologicalSorter
 
-import structlog
+from src.log_config import get_logger
 
-logger = structlog.get_logger(__name__)
+logger = get_logger(__name__)
 
 
 class CycleDetectedError(Exception):

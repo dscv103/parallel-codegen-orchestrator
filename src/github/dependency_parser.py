@@ -8,9 +8,9 @@ This module provides functionality to parse dependency markers from:
 import re
 from typing import ClassVar
 
-import structlog
+from src.log_config import get_logger
 
-logger = structlog.get_logger(__name__)
+logger = get_logger(__name__)
 
 
 class DependencyParser:

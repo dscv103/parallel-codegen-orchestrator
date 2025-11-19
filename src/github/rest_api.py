@@ -11,6 +11,10 @@ from github.PullRequest import PullRequest
 from github.Repository import Repository
 
 from github import Github, GithubException, RateLimitExceededException
+from src.log_config import get_logger
+
+# Initialize logger
+logger = get_logger(__name__)
 
 # Constants
 BRANCH_EXISTS_STATUS_CODE = 422
@@ -33,13 +37,17 @@ class GitHubIntegration:
         """
         self.github = Github(token)
         self.org_id = org_id
+        logger.info("github_integration_initializing", org_id=org_id)
         self._verify_authentication()
+        logger.info("github_integration_initialized", org_id=org_id)
 
     def _verify_authentication(self) -> None:
         """Verify GitHub token is valid."""
         try:
-            _ = self.github.get_user().login
+            user_login = self.github.get_user().login
+            logger.info("github_authentication_verified", user=user_login)
         except GithubException as e:
+            logger.exception("github_authentication_failed", error=str(e))
             msg = f"Invalid GitHub token: {e}"
             raise ValueError(msg) from e
 

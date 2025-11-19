@@ -7,14 +7,13 @@ using asyncio.Semaphore to limit parallelism to the agent pool size.
 import asyncio
 from typing import Any
 
-import structlog
-
 from src.agents.agent_pool import AgentPool, ManagedAgent
 from src.agents.codegen_executor import CodegenExecutor, TaskResult
 from src.graph.dependency_graph import DependencyGraph
+from src.log_config import get_logger
 
 # Initialize logger
-logger = structlog.get_logger(__name__)
+logger = get_logger(__name__)
 
 # Constants
 DEFAULT_AGENT_WAIT_INTERVAL = 0.1  # seconds to wait when no agent is available

@@ -10,11 +10,12 @@ from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
-import structlog
 from codegen import Agent
 
+from src.log_config import get_logger
+
 # Initialize logger
-logger = structlog.get_logger()
+logger = get_logger(__name__)
 
 # Constants
 DEFAULT_TIMEOUT_SECONDS = 600

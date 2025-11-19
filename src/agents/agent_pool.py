@@ -8,11 +8,12 @@ Codegen agents for concurrent task execution. The pool tracks agent status
 from dataclasses import dataclass, field
 from enum import Enum
 
-import structlog
 from codegen import Agent
 
+from src.log_config import get_logger
+
 # Initialize logger
-logger = structlog.get_logger()
+logger = get_logger(__name__)
 
 # Constants
 DEFAULT_MAX_AGENTS = 10

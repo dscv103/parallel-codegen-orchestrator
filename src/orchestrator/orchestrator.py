@@ -7,13 +7,12 @@ graph traversal with concurrent task execution using asyncio.gather.
 import asyncio
 from typing import Any
 
-import structlog
-
 from src.agents.codegen_executor import TaskResult, TaskStatus
+from src.log_config import get_logger
 from src.orchestrator.task_executor import TaskExecutor
 
 # Initialize logger
-logger = structlog.get_logger(__name__)
+logger = get_logger(__name__)
 
 # Constants
 DEFAULT_WAIT_INTERVAL = 0.5  # seconds to wait when no tasks are ready
