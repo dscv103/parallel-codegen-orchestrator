@@ -22,6 +22,7 @@ from src.github.rest_api import GitHubIntegration
 from src.graph.dependency_graph import DependencyGraph
 from src.orchestrator.orchestrator import TaskOrchestrator
 from src.orchestrator.result_manager import ResultManager
+from src.orchestrator.retry import RetryConfig
 from src.orchestrator.task_executor import TaskExecutor
 
 # Initialize logger (will be configured after loading config)
@@ -307,13 +308,16 @@ async def main_async(args: argparse.Namespace) -> int:
         # Initialize result manager
         result_manager = ResultManager()
 
+        # Create retry configuration from agent config
+        retry_config = RetryConfig.from_agent_config(config.agent)
+
         # Create executor and orchestrator
         logger.info("starting_orchestration")
         executor = TaskExecutor(
             agent_pool=agent_pool,
             dep_graph=dep_graph,
-            result_manager=result_manager,
             timeout_seconds=config.agent.task_timeout_seconds,
+            retry_config=retry_config,
         )
         orchestrator = TaskOrchestrator(executor=executor)
 
