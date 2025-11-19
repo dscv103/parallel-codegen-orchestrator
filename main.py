@@ -9,7 +9,6 @@ fetches tasks, builds dependency graph, and executes the orchestration loop.
 import argparse
 import asyncio
 import logging
-import signal
 import sys
 from pathlib import Path
 from typing import Any
@@ -27,9 +26,6 @@ from src.orchestrator.task_executor import TaskExecutor
 
 # Initialize logger (will be configured after loading config)
 logger = structlog.get_logger(__name__)
-
-# Global flag for graceful shutdown
-shutdown_requested = False
 
 
 def configure_logging(level: str = "INFO") -> None:
@@ -54,19 +50,6 @@ def configure_logging(level: str = "INFO") -> None:
         logger_factory=structlog.PrintLoggerFactory(),
         cache_logger_on_first_use=False,
     )
-
-
-def signal_handler(signum: int, _frame: object) -> None:
-    """Handle shutdown signals (SIGINT, SIGTERM).
-
-    Args:
-        signum: Signal number
-        _frame: Current stack frame (unused)
-    """
-    global shutdown_requested  # noqa: PLW0603
-    signal_name = signal.Signals(signum).name
-    logger.warning("shutdown_signal_received", signal=signal_name)
-    shutdown_requested = True
 
 
 async def fetch_tasks_from_github(
@@ -273,10 +256,6 @@ async def main_async(args: argparse.Namespace) -> int:
     # Configure logging
     configure_logging(args.log_level)
 
-    # Register signal handlers for graceful shutdown
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-
     try:
         # Load configuration
         logger.info("loading_configuration", config_file=args.config)
@@ -341,44 +320,39 @@ async def main_async(args: argparse.Namespace) -> int:
         # Execute orchestration loop
         results = await orchestrator.orchestrate(tasks)
 
-        # Check for shutdown
-        if shutdown_requested:
-            logger.warning("orchestration_interrupted_by_signal")
+        # Log summary
+        summary = result_manager.get_summary()
+        logger.info(
+            "orchestration_complete",
+            total=summary.get("total_tasks", 0),
+            successful=summary.get("successful", 0),
+            failed=summary.get("failed", 0),
+            duration=summary.get("total_duration_seconds", 0),
+        )
+
+        # Post results back to GitHub
+        if config.automation.post_results_as_comment and not args.no_post_results:
+            # Convert TaskResult objects to dicts with task metadata
+            results_dicts = []
+            for task_result in results:
+                task_data = tasks.get(task_result.task_id, {})
+                result_dict = {
+                    "task_id": task_result.task_id,
+                    "issue_number": task_data.get("issue_number"),
+                    "title": task_data.get("title", "Unknown task"),
+                    "status": task_result.status.value,  # Convert enum to string
+                    "duration_seconds": task_result.duration_seconds,
+                    "result": task_result.result,
+                    "error": task_result.error,
+                }
+                results_dicts.append(result_dict)
+
+            await post_results_to_github(github, results_dicts, config)
+
+        # Set exit code based on results
+        if summary.get("failed", 0) > 0:
+            logger.warning("orchestration_had_failures", failed_count=summary.get("failed"))
             exit_code = 1
-        else:
-            # Log summary
-            summary = result_manager.get_summary()
-            logger.info(
-                "orchestration_complete",
-                total=summary.get("total_tasks", 0),
-                successful=summary.get("successful", 0),
-                failed=summary.get("failed", 0),
-                duration=summary.get("total_duration_seconds", 0),
-            )
-
-            # Post results back to GitHub
-            if config.automation.post_results_as_comment and not args.no_post_results:
-                # Convert TaskResult objects to dicts with task metadata
-                results_dicts = []
-                for task_result in results:
-                    task_data = tasks.get(task_result.task_id, {})
-                    result_dict = {
-                        "task_id": task_result.task_id,
-                        "issue_number": task_data.get("issue_number"),
-                        "title": task_data.get("title", "Unknown task"),
-                        "status": task_result.status.value,  # Convert enum to string
-                        "duration_seconds": task_result.duration_seconds,
-                        "result": task_result.result,
-                        "error": task_result.error,
-                    }
-                    results_dicts.append(result_dict)
-                
-                await post_results_to_github(github, results_dicts, config)
-
-            # Set exit code based on results
-            if summary.get("failed", 0) > 0:
-                logger.warning("orchestration_had_failures", failed_count=summary.get("failed"))
-                exit_code = 1
 
     except KeyboardInterrupt:
         logger.warning("orchestration_interrupted")
