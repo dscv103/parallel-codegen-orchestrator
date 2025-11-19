@@ -36,7 +36,7 @@ def configure_logging(level: str = "INFO", json_logs: bool = True) -> None:
     numeric_level = getattr(logging, level.upper(), None)
     if not isinstance(numeric_level, int):
         msg = f"Invalid log level: {level}"
-        raise ValueError(msg)
+        raise TypeError(msg)
 
     # Configure standard library logging
     logging.basicConfig(
