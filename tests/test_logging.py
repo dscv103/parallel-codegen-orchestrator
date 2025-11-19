@@ -38,7 +38,7 @@ class TestLoggingConfiguration:
 
     def test_configure_logging_invalid_level(self):
         """Test logging configuration with invalid level."""
-        with pytest.raises(TypeError, match="Invalid log level"):
+        with pytest.raises(ValueError, match="Invalid log level"):
             configure_logging(level="INVALID", json_logs=True)
 
     def test_configure_logging_console_renderer(self):
