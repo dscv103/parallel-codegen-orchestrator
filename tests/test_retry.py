@@ -256,6 +256,11 @@ class TestRetryConfig:
         with pytest.raises(ValueError, match="base_delay_seconds must be non-negative"):
             RetryConfig(base_delay_seconds=-1)
 
+    def test_invalid_enabled_with_zero_attempts(self):
+        """Test that enabled=True with max_attempts=0 raises ValueError."""
+        with pytest.raises(ValueError, match="enabled cannot be True when max_attempts is 0"):
+            RetryConfig(max_attempts=0, enabled=True)
+
     def test_from_agent_config(self):
         """Test creating RetryConfig from AgentConfig."""
         agent_config = AgentConfig(

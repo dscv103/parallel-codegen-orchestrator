@@ -290,13 +290,20 @@ class RetryConfig:
             enabled: Enable retry logic (default: True)
 
         Raises:
-            ValueError: If parameters are invalid
+            ValueError: If parameters are invalid or if enabled=True when max_attempts=0
+
+        Invariants:
+            - If enabled is True, max_attempts must be greater than 0
+            - max_attempts and base_delay_seconds must be non-negative
         """
         if max_attempts < 0:
             msg = "max_attempts must be non-negative"
             raise ValueError(msg)
         if base_delay_seconds < 0:
             msg = "base_delay_seconds must be non-negative"
+            raise ValueError(msg)
+        if enabled and max_attempts == 0:
+            msg = "enabled cannot be True when max_attempts is 0"
             raise ValueError(msg)
 
         self.max_attempts = max_attempts
