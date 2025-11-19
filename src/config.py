@@ -5,6 +5,7 @@ validation of YAML/JSON configuration files with environment variable overrides.
 """
 
 import os
+import threading
 from pathlib import Path
 
 import structlog
@@ -374,6 +375,7 @@ class ConfigManager:
     """Configuration manager using singleton pattern."""
 
     _instance: OrchestratorConfig | None = None
+    _init_lock: threading.Lock = threading.Lock()
 
     @classmethod
     def load_config(cls, config_path: str | Path | None = None) -> OrchestratorConfig:
@@ -418,6 +420,9 @@ class ConfigManager:
     ) -> OrchestratorConfig:
         """Get configuration instance (singleton pattern).
 
+        Uses double-checked locking to prevent TOCTOU race conditions
+        where concurrent threads could both call load_config.
+
         Args:
             config_path: Path to configuration file. Only used on first call or when reload=True.
             reload: If True, force reload configuration from file.
@@ -425,10 +430,17 @@ class ConfigManager:
         Returns:
             OrchestratorConfig instance
         """
-        if cls._instance is None or reload:
-            cls._instance = cls.load_config(config_path)
+        # First check (without lock) - fast path for already initialized instance
+        if cls._instance is not None and not reload:
+            return cls._instance
 
-        return cls._instance
+        # Acquire lock for initialization
+        with cls._init_lock:
+            # Second check (with lock) - prevent race condition
+            if cls._instance is None or reload:
+                cls._instance = cls.load_config(config_path)
+
+            return cls._instance
 
     @classmethod
     def reset_config(cls) -> None:
