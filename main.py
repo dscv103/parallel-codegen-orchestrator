@@ -462,8 +462,10 @@ def main() -> None:
     """
     args = parse_args()
 
-    # Check if config file exists
-    if not Path(args.config).exists() and not args.dry_run:
+    # Check if config file exists before attempting to load it
+    # This provides a clear error message before logging is configured
+    if not Path(args.config).exists():
+        print(f"Error: Configuration file not found: {args.config}", file=sys.stderr)
         sys.exit(1)
 
     # Run async main
