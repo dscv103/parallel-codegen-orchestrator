@@ -833,7 +833,9 @@ class TestComplexScenarios:
 
             # Safety check to prevent infinite loops
             if not ready:
-                error_msg = f"No ready tasks but graph is still active at iteration {iteration_count}"
+                error_msg = (
+                    f"No ready tasks but graph is still active at iteration {iteration_count}"
+                )
                 raise AssertionError(error_msg)
 
             completed_count += len(ready)
