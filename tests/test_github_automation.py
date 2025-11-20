@@ -297,7 +297,9 @@ class TestShouldRunAutomation:
 
     def test_should_run_automation_disabled(self, automation_handler):
         """Test that disabled features return False."""
-        assert not automation_handler._should_run_automation("auto_merge_on_success")  # noqa: SLF001
+        assert not automation_handler._should_run_automation(  # noqa: SLF001
+            "auto_merge_on_success",
+        )
 
     def test_should_run_automation_unknown_feature(self, automation_handler):
         """Test that unknown features return False."""

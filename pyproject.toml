@@ -108,7 +108,9 @@ select = [
 ]
 
 # Rules to ignore globally
-ignore = []
+ignore = [
+    "I001",  # Import block is un-sorted or un-formatted - handled by standalone isort
+]
 
 # PHASED ROLLOUT PLAN:
 # Phase 1 (Current): E, W, F, I - Essential errors and imports

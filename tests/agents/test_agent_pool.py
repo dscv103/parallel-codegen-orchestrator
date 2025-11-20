@@ -7,6 +7,7 @@ Tests cover:
 - Pool statistics and monitoring
 - Agent failure and recovery
 """
+
 # ruff: noqa: PT019
 
 from unittest.mock import Mock, patch
