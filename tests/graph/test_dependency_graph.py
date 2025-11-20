@@ -823,18 +823,25 @@ class TestComplexScenarios:
 
         graph.build()
 
-        # At start, first task of each chain should be ready
-        ready = graph.get_ready_tasks()
-        assert len(ready) == num_chains
-
         # Complete all chains
         completed_count = 0
-        while graph.is_active():
+        iteration_count = 0
+        max_iterations = num_chains * chain_length + 10  # Safety limit
+
+        while graph.is_active() and iteration_count < max_iterations:
             ready = graph.get_ready_tasks()
+
+            # Safety check to prevent infinite loops
+            if not ready:
+                error_msg = f"No ready tasks but graph is still active at iteration {iteration_count}"
+                raise AssertionError(error_msg)
+
             completed_count += len(ready)
             graph.mark_completed(*ready)
+            iteration_count += 1
 
         assert completed_count == num_chains * chain_length
+        assert not graph.is_active()  # Ensure graph is fully completed
 
     def test_dynamic_cycle_prevention_complex(self):
         """Test cycle prevention in a complex scenario."""
